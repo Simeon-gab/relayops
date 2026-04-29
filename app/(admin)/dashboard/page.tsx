@@ -1,60 +1,63 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { SignOutButton } from '@/components/shared/sign-out-button'
+import { Package, Truck, Receipt, AlertCircle } from 'lucide-react'
+import { getDashboardStats } from '@/lib/db/dashboard-stats'
+import { StatCard } from '@/components/admin/stat-card'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/sign-in')
-  }
+  const stats = await getDashboardStats()
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <h1 className="text-lg font-semibold">RelayOps</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600">{user.email}</span>
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
+    <div className="px-6 py-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500">Daily operations overview.</p>
+      </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-12">
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900">Dashboard</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Welcome back, {user.email}
-          </p>
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Warehouse Stock"
+          icon={Package}
+          value={stats.warehouseStock !== null ? String(stats.warehouseStock.total) : '—'}
+          subtitle={
+            stats.warehouseStock !== null
+              ? `Lagos: ${stats.warehouseStock.lagos} · Kano: ${stats.warehouseStock.kano}`
+              : 'data unavailable'
+          }
+        />
+        <StatCard
+          title="Active Shipments"
+          icon={Truck}
+          value={stats.activeShipments !== null ? String(stats.activeShipments.total) : '—'}
+          subtitle={
+            stats.activeShipments !== null
+              ? `${stats.activeShipments.dealer} dealer · ${stats.activeShipments.transfer} transfer`
+              : 'data unavailable'
+          }
+        />
+        <StatCard
+          title="Pending Payments"
+          icon={Receipt}
+          value={stats.pendingPayments !== null ? stats.pendingPayments.totalFormatted : '—'}
+          subtitle={
+            stats.pendingPayments !== null
+              ? `${stats.pendingPayments.shipmentCount} shipment${stats.pendingPayments.shipmentCount !== 1 ? 's' : ''} outstanding`
+              : 'data unavailable'
+          }
+        />
+        <StatCard
+          title="Items Needing Attention"
+          icon={AlertCircle}
+          value={stats.attention !== null ? String(stats.attention.total) : '—'}
+          subtitle={
+            stats.attention !== null
+              ? `${stats.attention.receipts} receipts · ${stats.attention.messages} messages · ${stats.attention.overdue} overdue`
+              : 'data unavailable'
+          }
+        />
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Warehouse Stock', value: '—' },
-            { label: 'Active Shipments', value: '—' },
-            { label: 'Pending Payments', value: '—' },
-            { label: 'Items Needing Attention', value: '—' },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="rounded-lg border bg-white p-5 shadow-sm"
-            >
-              <p className="text-sm text-slate-500">{label}</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-10 text-sm text-slate-400">
-          Block 2 coming next: database schema, seed data, and real counts.
-        </p>
-      </main>
+      <p className="mt-10 text-sm text-slate-400">
+        Block 3: full admin views coming next.
+      </p>
     </div>
   )
 }

@@ -4,7 +4,9 @@
       "Bash(python3 *)",
       "Bash(npm install *)",
       "Bash(node scripts/run-sql.mjs supabase/seed.sql)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)"
     ]
   }
 }
