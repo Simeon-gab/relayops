@@ -7,6 +7,7 @@ import type {
   DealerPayment,
   DealerMessage,
   DealerOrder,
+  DealerOrderSummaryItem,
 } from '@/types/dealers'
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
@@ -201,11 +202,23 @@ type RawActivityMessage = {
   message_parse_results: Array<{ parsed_intent: string; created_at: string }>
 }
 
+const ORDER_STATUS_PRIORITY: Record<string, number> = {
+  pending: 1,
+  partially_fulfilled: 2,
+  fulfilled: 3,
+  cancelled: 4,
+}
+
 type RawActivityOrder = {
   id: string
   status: string
   requested_at: string
-  dealer_order_items: Array<{ id: string }>
+  created_at: string
+  dealer_order_items: Array<{
+    id: string
+    quantity_requested: number
+    products: { sku_code: string } | null
+  }>
 }
 
 export async function getDealerActivity(dealerId: string): Promise<DealerActivity> {
@@ -238,11 +251,11 @@ export async function getDealerActivity(dealerId: string): Promise<DealerActivit
 
     db
       .from('dealer_orders')
-      .select('id, status, requested_at, dealer_order_items(id)')
+      .select('id, status, requested_at, created_at, dealer_order_items(id, quantity_requested, products(sku_code))')
       .eq('dealer_id', dealerId)
       .is('deleted_at', null)
-      .order('requested_at', { ascending: false })
-      .limit(10),
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   const shipments: DealerShipment[] = ((shipmentsResult.data ?? []) as unknown as RawActivityShipment[]).map(
@@ -283,14 +296,26 @@ export async function getDealerActivity(dealerId: string): Promise<DealerActivit
     }
   )
 
-  const orders: DealerOrder[] = ((ordersResult.data ?? []) as unknown as RawActivityOrder[]).map(
-    (o) => ({
+  const rawOrders = ((ordersResult.data ?? []) as unknown as RawActivityOrder[])
+  rawOrders.sort((a, b) => {
+    const diff = (ORDER_STATUS_PRIORITY[a.status] ?? 5) - (ORDER_STATUS_PRIORITY[b.status] ?? 5)
+    if (diff !== 0) return diff
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
+  const orders: DealerOrder[] = rawOrders.map((o) => {
+    const summary: DealerOrderSummaryItem[] = o.dealer_order_items.map((i) => ({
+      sku_code: i.products?.sku_code ?? '—',
+      quantity: i.quantity_requested,
+    }))
+    return {
       id: o.id,
       status: o.status,
       requested_at: o.requested_at,
       item_count: o.dealer_order_items.length,
-    })
-  )
+      summary,
+    }
+  })
 
   return { shipments, payments, messages, orders }
 }

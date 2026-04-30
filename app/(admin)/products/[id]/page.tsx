@@ -1,5 +1,8 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { getProduct } from '@/lib/db/products'
 import { formatNairaCurrency } from '@/lib/utils/format'
 
@@ -12,6 +15,10 @@ export default async function ProductDetailPage({ params }: Props) {
   const product = await getProduct(id)
 
   if (!product) notFound()
+
+  const imageUrl = product.image_path
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${product.image_path}`
+    : null
 
   const specs: { label: string; value: string | number | null }[] = [
     { label: 'SKU', value: product.sku_code },
@@ -27,38 +34,62 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <div className="px-6 py-10">
-      <div className="mb-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            {product.display_name}
-          </h1>
-          {!product.active && <Badge variant="secondary">Inactive</Badge>}
+      <Link
+        href="/products"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to products
+      </Link>
+
+      <div className="mb-8 mt-4 flex items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {product.display_name}
+            </h1>
+            {!product.active && <Badge variant="secondary">Inactive</Badge>}
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            <span className="font-mono">{product.sku_code}</span> ·{' '}
+            <span className="tabular-nums">{product.total_stock}</span> units total
+          </p>
         </div>
-        <p className="mt-1 text-sm text-slate-500">
-          <span className="font-mono">{product.sku_code}</span> ·{' '}
-          <span className="tabular-nums">{product.total_stock}</span> units total
-        </p>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/products/${id}/edit`}>
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            Edit
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Image placeholder */}
-        <div className="flex items-center justify-center rounded-xl border bg-white lg:col-span-1">
-          <div className="flex h-56 w-full items-center justify-center text-slate-300">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-16 w-16"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
+        {/* Product image */}
+        <div className="flex items-center justify-center overflow-hidden rounded-xl border bg-white lg:col-span-1">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={product.display_name}
+              className="h-56 w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-56 w-full items-center justify-center text-slate-200">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+          )}
         </div>
 
         {/* Specs + stock */}

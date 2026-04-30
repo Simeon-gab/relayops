@@ -12,10 +12,19 @@ type Supabase = Awaited<ReturnType<typeof createClient>>
 
 // ─── getShipments ─────────────────────────────────────────────────────────────
 
+const SHIPMENT_STATUS_PRIORITY: Record<string, number> = {
+  pending: 1,
+  dispatched: 2,
+  in_transit: 3,
+  delivered: 4,
+  cancelled: 5,
+}
+
 type RawSummary = {
   id: string
   shipment_type: string
   status: string
+  created_at: string
   destination_city: string | null
   dispatched_at: string | null
   total_amount_naira: number | null
@@ -26,13 +35,28 @@ type RawSummary = {
   shipment_items: Array<{ id: string }>
 }
 
+function byShipmentPriority(a: RawSummary, b: RawSummary): number {
+  const pa = SHIPMENT_STATUS_PRIORITY[a.status] ?? 6
+  const pb = SHIPMENT_STATUS_PRIORITY[b.status] ?? 6
+  if (pa !== pb) return pa - pb
+
+  // Within delivered: unpaid/partial ahead of fully paid
+  if (a.status === 'delivered') {
+    const aOwed = Number(a.total_amount_naira ?? 0) - Number(a.amount_paid_naira) > 0
+    const bOwed = Number(b.total_amount_naira ?? 0) - Number(b.amount_paid_naira) > 0
+    if (aOwed !== bOwed) return aOwed ? -1 : 1
+  }
+
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+}
+
 export async function getShipments(filters: ShipmentFilters = {}): Promise<ShipmentSummary[]> {
   const db = await createClient()
 
   let query = db
     .from('shipments')
     .select(`
-      id, shipment_type, status, destination_city, dispatched_at,
+      id, shipment_type, status, created_at, destination_city, dispatched_at,
       total_amount_naira, amount_paid_naira,
       origin_warehouse:warehouses!origin_warehouse_id(code),
       destination_warehouse:warehouses!destination_warehouse_id(code),
@@ -53,7 +77,10 @@ export async function getShipments(filters: ShipmentFilters = {}): Promise<Shipm
   const { data, error } = await query
   if (error) throw error
 
-  let rows = ((data ?? []) as unknown as RawSummary[]).map((s) => ({
+  const raw = ((data ?? []) as unknown as RawSummary[])
+  raw.sort(byShipmentPriority)
+
+  let rows = raw.map((s) => ({
     id: s.id,
     shipment_type: s.shipment_type,
     status: s.status,

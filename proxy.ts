@@ -37,6 +37,7 @@ export async function proxy(request: NextRequest) {
   const protectedPaths = [
     '/dashboard',
     '/containers',
+    '/dealer-orders',
     '/shipments',
     '/dealers',
     '/products',

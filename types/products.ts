@@ -9,6 +9,7 @@ export interface ProductSummary {
   sell_price_naira: number | null
   active: boolean
   total_stock: number
+  image_path: string | null
 }
 
 export interface StockByWarehouse {

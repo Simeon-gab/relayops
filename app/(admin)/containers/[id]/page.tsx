@@ -145,6 +145,48 @@ export default async function ContainerDetailPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Shipping details (only if any field is populated) */}
+      {(container.bill_of_lading ||
+        container.shipping_line ||
+        container.origin_port ||
+        container.expected_arrival_date) && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Shipping details
+          </h2>
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <dl className="divide-y text-sm">
+              {container.shipping_line && (
+                <div className="flex gap-4 px-4 py-3">
+                  <dt className="w-44 shrink-0 text-slate-500">Shipping line</dt>
+                  <dd className="text-slate-900">{container.shipping_line}</dd>
+                </div>
+              )}
+              {container.bill_of_lading && (
+                <div className="flex gap-4 px-4 py-3">
+                  <dt className="w-44 shrink-0 text-slate-500">Bill of lading</dt>
+                  <dd className="font-mono text-slate-900">{container.bill_of_lading}</dd>
+                </div>
+              )}
+              {container.origin_port && (
+                <div className="flex gap-4 px-4 py-3">
+                  <dt className="w-44 shrink-0 text-slate-500">Origin port</dt>
+                  <dd className="text-slate-900">{container.origin_port}</dd>
+                </div>
+              )}
+              {container.expected_arrival_date && (
+                <div className="flex gap-4 px-4 py-3">
+                  <dt className="w-44 shrink-0 text-slate-500">Expected arrival</dt>
+                  <dd className="text-slate-900">
+                    {formatDate(container.expected_arrival_date)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        </div>
+      )}
+
       {/* Notes */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">

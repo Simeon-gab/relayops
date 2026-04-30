@@ -5,7 +5,23 @@ import { DataTable, type Column } from './data-table'
 import { formatNairaCurrency } from '@/lib/utils/format'
 import type { ProductSummary } from '@/types/products'
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+
 const columns: Column<ProductSummary>[] = [
+  {
+    header: '',
+    className: 'w-12',
+    cell: (r) =>
+      r.image_path ? (
+        <img
+          src={`${SUPABASE_URL}/storage/v1/object/public/product-images/${r.image_path}`}
+          alt=""
+          className="h-9 w-9 rounded object-cover"
+        />
+      ) : (
+        <div className="h-9 w-9 rounded bg-slate-100" />
+      ),
+  },
   {
     header: 'SKU',
     cell: (r) => (

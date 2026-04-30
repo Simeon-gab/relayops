@@ -16,6 +16,10 @@ type RawContainerDetail = {
   arrived_at: string
   status: string
   notes: string | null
+  bill_of_lading: string | null
+  shipping_line: string | null
+  expected_arrival_date: string | null
+  origin_port: string | null
   container_items: Array<{
     product_id: string
     quantity: number
@@ -56,7 +60,7 @@ export async function getContainer(containerId: string): Promise<ContainerDetail
   const { data, error } = await db
     .from('containers')
     .select(
-      'id, container_number, arrived_at, status, notes, container_items(product_id, quantity, products(sku_code, display_name, category, color))'
+      'id, container_number, arrived_at, status, notes, bill_of_lading, shipping_line, expected_arrival_date, origin_port, container_items(product_id, quantity, products(sku_code, display_name, category, color))'
     )
     .eq('id', containerId)
     .is('deleted_at', null)
@@ -83,6 +87,10 @@ export async function getContainer(containerId: string): Promise<ContainerDetail
     arrived_at: c.arrived_at,
     status: c.status,
     notes: c.notes,
+    bill_of_lading: c.bill_of_lading,
+    shipping_line: c.shipping_line,
+    expected_arrival_date: c.expected_arrival_date,
+    origin_port: c.origin_port,
     items,
   }
 }

@@ -6,7 +6,10 @@
       "Bash(node scripts/run-sql.mjs supabase/seed.sql)",
       "Bash(node *)",
       "Bash(npx tsc *)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(curl *)",
+      "Bash(npx shadcn@latest add popover command --yes)",
+      "Bash(npx shadcn@latest add switch --yes)"
     ]
   }
 }

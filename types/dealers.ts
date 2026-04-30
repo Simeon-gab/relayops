@@ -59,11 +59,33 @@ export interface DealerMessage {
   parsed_intent: string | null
 }
 
+export interface DealerOrderSummaryItem {
+  sku_code: string
+  quantity: number
+}
+
 export interface DealerOrder {
   id: string
   status: string
   requested_at: string
   item_count: number
+  summary: DealerOrderSummaryItem[]
+}
+
+export interface DealerForEdit {
+  id: string
+  business_name: string
+  contact_name: string
+  phone: string
+  phone_secondary: string | null
+  email: string | null
+  city: string
+  state: string
+  preferred_language: string
+  served_by_warehouse_id: string
+  credit_limit_naira: number | null
+  notes: string | null
+  active: boolean
 }
 
 export interface DealerActivity {

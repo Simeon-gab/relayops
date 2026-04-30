@@ -1,4 +1,4 @@
-import { Package, Truck, Receipt, AlertCircle } from 'lucide-react'
+import { Package, Truck, Receipt, AlertCircle, ClipboardList } from 'lucide-react'
 import { getDashboardStats } from '@/lib/db/dashboard-stats'
 import { StatCard } from '@/components/admin/stat-card'
 
@@ -12,7 +12,7 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-slate-500">Daily operations overview.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           title="Warehouse Stock"
           icon={Package}
@@ -53,11 +53,18 @@ export default async function DashboardPage() {
               : 'data unavailable'
           }
         />
+        <StatCard
+          title="Pending Orders"
+          icon={ClipboardList}
+          href="/dealer-orders"
+          value={stats.pendingOrders !== null ? String(stats.pendingOrders.total) : '—'}
+          subtitle={
+            stats.pendingOrders !== null
+              ? `${stats.pendingOrders.pending} pending · ${stats.pendingOrders.partially_fulfilled} partial`
+              : 'data unavailable'
+          }
+        />
       </div>
-
-      <p className="mt-10 text-sm text-slate-400">
-        Block 3: full admin views coming next.
-      </p>
     </div>
   )
 }

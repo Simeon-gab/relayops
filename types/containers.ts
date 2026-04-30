@@ -23,5 +23,9 @@ export interface ContainerDetail {
   arrived_at: string
   status: string
   notes: string | null
+  bill_of_lading: string | null
+  shipping_line: string | null
+  expected_arrival_date: string | null
+  origin_port: string | null
   items: ContainerItem[]
 }

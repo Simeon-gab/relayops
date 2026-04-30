@@ -6,6 +6,7 @@ import type {
   ActiveShipmentsMetric,
   PendingPaymentsMetric,
   AttentionMetric,
+  PendingOrdersMetric,
 } from '@/types/dashboard'
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
@@ -129,15 +130,42 @@ async function fetchAttentionItems(db: Supabase): Promise<AttentionMetric | null
   }
 }
 
+async function fetchPendingOrders(db: Supabase): Promise<PendingOrdersMetric | null> {
+  try {
+    const { data, error } = await db
+      .from('dealer_orders')
+      .select('status')
+      .in('status', ['pending', 'partially_fulfilled'])
+      .is('deleted_at', null)
+
+    if (error) throw error
+
+    type Row = { status: string }
+    let pending = 0
+    let partially_fulfilled = 0
+
+    for (const row of (data ?? []) as Row[]) {
+      if (row.status === 'pending') pending++
+      else if (row.status === 'partially_fulfilled') partially_fulfilled++
+    }
+
+    return { total: pending + partially_fulfilled, pending, partially_fulfilled }
+  } catch {
+    return null
+  }
+}
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   const db = await createClient()
 
-  const [warehouseStock, activeShipments, pendingPayments, attention] = await Promise.all([
-    fetchWarehouseStock(db),
-    fetchActiveShipments(db),
-    fetchPendingPayments(db),
-    fetchAttentionItems(db),
-  ])
+  const [warehouseStock, activeShipments, pendingPayments, attention, pendingOrders] =
+    await Promise.all([
+      fetchWarehouseStock(db),
+      fetchActiveShipments(db),
+      fetchPendingPayments(db),
+      fetchAttentionItems(db),
+      fetchPendingOrders(db),
+    ])
 
-  return { warehouseStock, activeShipments, pendingPayments, attention }
+  return { warehouseStock, activeShipments, pendingPayments, attention, pendingOrders }
 }

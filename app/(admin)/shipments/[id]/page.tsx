@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { StatusBadge } from '@/components/admin/status-badge'
+import { ShipmentStatusActions } from '@/components/admin/shipment-status-actions'
 import { getShipment } from '@/lib/db/shipments'
 import { formatNairaCurrency } from '@/lib/utils/format'
 import type { ShipmentItemRow, StatusEvent } from '@/types/shipments'
@@ -59,18 +60,21 @@ export default async function ShipmentDetailPage({ params }: Props) {
       </Link>
 
       {/* Header */}
-      <div className="mb-8 mt-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            {heading}{' '}
-            <span className="font-mono text-slate-500">#{shortId}</span>
-          </h1>
-          <StatusBadge status={shipment.status} />
+      <div className="mb-8 mt-4 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {heading}{' '}
+              <span className="font-mono text-slate-500">#{shortId}</span>
+            </h1>
+            <StatusBadge status={shipment.status} />
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Dispatched {formatDate(shipment.dispatched_at)} ·{' '}
+            {totalItems} unit{totalItems !== 1 ? 's' : ''}
+          </p>
         </div>
-        <p className="mt-1 text-sm text-slate-500">
-          Dispatched {formatDate(shipment.dispatched_at)} ·{' '}
-          {totalItems} unit{totalItems !== 1 ? 's' : ''}
-        </p>
+        <ShipmentStatusActions shipment={{ id: shipment.id, status: shipment.status }} />
       </div>
 
       {/* Stats grid */}

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { NavLinks } from '@/components/admin/nav-links'
 import { MobileNav } from '@/components/admin/mobile-nav'
+import { Toaster } from '@/components/ui/sonner'
 
 export default async function AdminLayout({
   children,
@@ -51,6 +52,7 @@ export default async function AdminLayout({
           {children}
         </main>
       </div>
+      <Toaster position="bottom-right" richColors />
     </div>
   )
 }

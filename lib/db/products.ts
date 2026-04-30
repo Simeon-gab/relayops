@@ -11,6 +11,7 @@ type RawProduct = {
   import_cost_naira: number | null
   sell_price_naira: number | null
   active: boolean
+  image_path: string | null
   warehouse_stock: Array<{
     quantity: number
     warehouses: { id: string; name: string; code: string } | null
@@ -30,6 +31,7 @@ function toSummary(p: RawProduct): ProductSummary {
     sell_price_naira: p.sell_price_naira,
     active: p.active,
     total_stock,
+    image_path: p.image_path,
   }
 }
 
@@ -39,7 +41,7 @@ export async function getProducts(): Promise<ProductSummary[]> {
   const { data, error } = await db
     .from('products')
     .select(
-      'id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, warehouse_stock(quantity, warehouses(id, name, code))'
+      'id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, image_path, warehouse_stock(quantity, warehouses(id, name, code))'
     )
     .eq('active', true)
     .order('display_name')
@@ -55,7 +57,7 @@ export async function getProduct(productId: string): Promise<ProductDetail | nul
   const { data, error } = await db
     .from('products')
     .select(
-      'id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, warehouse_stock(quantity, warehouses(id, name, code))'
+      'id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, image_path, warehouse_stock(quantity, warehouses(id, name, code))'
     )
     .eq('id', productId)
     .single()

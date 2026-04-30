@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Container,
+  ClipboardList,
   Truck,
   Warehouse,
   Bike,
@@ -16,9 +17,10 @@ import {
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { label: 'Dashboard',  href: '/dashboard',  icon: LayoutDashboard },
-  { label: 'Containers', href: '/containers',  icon: Container },
-  { label: 'Shipments',  href: '/shipments',   icon: Truck },
+  { label: 'Dashboard',  href: '/dashboard',      icon: LayoutDashboard },
+  { label: 'Containers', href: '/containers',      icon: Container },
+  { label: 'Orders',     href: '/dealer-orders',  icon: ClipboardList },
+  { label: 'Shipments',  href: '/shipments',       icon: Truck },
   { label: 'Warehouses', href: '/warehouses',  icon: Warehouse },
   { label: 'Products',   href: '/products',    icon: Bike },
   { label: 'Dealers',    href: '/dealers',     icon: Users },
