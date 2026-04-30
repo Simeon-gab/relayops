@@ -2,6 +2,7 @@ export interface MessageFilters {
   dealer_id?: string
   channel?: string
   parse_status?: 'parsed' | 'unparsed'
+  intent?: string
 }
 
 export interface MessageSummary {
@@ -15,6 +16,7 @@ export interface MessageSummary {
   created_at: string
   has_receipt: boolean
   has_parse_result: boolean
+  parse_intent: string | null
 }
 
 export interface MessageReceipt {
@@ -31,6 +33,18 @@ export interface MessageParseResult {
   extracted_data: Record<string, unknown>
   confidence: number
   ai_notes: string | null
+  created_at: string
+}
+
+export interface OutboundMessageSummary {
+  id: string
+  dealer_id: string
+  business_name: string
+  city: string
+  channel: string
+  language: string | null
+  original_text: string
+  translated_text: string | null
   created_at: string
 }
 

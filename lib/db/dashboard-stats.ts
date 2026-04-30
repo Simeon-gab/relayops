@@ -97,7 +97,7 @@ async function fetchAttentionItems(db: Supabase): Promise<AttentionMetric | null
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    const [receiptsResult, messagesResult, overdueResult] = await Promise.all([
+    const [receiptsResult, messagesResult, overdueResult, containersResult] = await Promise.all([
       db
         .from('receipts')
         .select('*', { count: 'exact', head: true })
@@ -114,6 +114,12 @@ async function fetchAttentionItems(db: Supabase): Promise<AttentionMetric | null
         .eq('status', 'dispatched')
         .lt('dispatched_at', sevenDaysAgo)
         .is('deleted_at', null),
+
+      db
+        .from('containers')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending_allocation')
+        .is('deleted_at', null),
     ])
 
     if (receiptsResult.error) throw receiptsResult.error
@@ -123,8 +129,9 @@ async function fetchAttentionItems(db: Supabase): Promise<AttentionMetric | null
     const receipts = receiptsResult.count ?? 0
     const messages = messagesResult.count ?? 0
     const overdue = overdueResult.count ?? 0
+    const pending_containers = containersResult.count ?? 0
 
-    return { total: receipts + messages + overdue, receipts, messages, overdue }
+    return { total: receipts + messages + overdue + pending_containers, receipts, messages, overdue, pending_containers }
   } catch {
     return null
   }

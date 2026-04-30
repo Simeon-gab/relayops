@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { ShipmentStatusActions } from '@/components/admin/shipment-status-actions'
+import { DraftMessageButton } from '@/components/admin/draft-message-button'
 import { getShipment } from '@/lib/db/shipments'
 import { formatNairaCurrency } from '@/lib/utils/format'
 import type { ShipmentItemRow, StatusEvent } from '@/types/shipments'
@@ -74,7 +75,32 @@ export default async function ShipmentDetailPage({ params }: Props) {
             {totalItems} unit{totalItems !== 1 ? 's' : ''}
           </p>
         </div>
-        <ShipmentStatusActions shipment={{ id: shipment.id, status: shipment.status }} />
+        <div className="flex items-center gap-2">
+          {isDealer && shipment.destination_dealer && (
+            <DraftMessageButton
+              label="Draft message"
+              dealerId={shipment.destination_dealer.id}
+              contextType="shipment"
+              contextId={shipment.id}
+              draftInput={{
+                messageType: 'shipment_dispatched',
+                dealerName: shipment.destination_dealer.business_name,
+                dealerCity: shipment.destination_city ?? '',
+                preferredLanguage: shipment.destination_dealer.preferred_language ?? 'en',
+                shipmentItems: shipment.items.map((i: ShipmentItemRow) => ({
+                  sku_code: i.sku_code,
+                  display_name: i.display_name,
+                  quantity: i.quantity,
+                  unit_price_naira: i.unit_price_naira,
+                })),
+                dispatchDate: shipment.dispatched_at ?? undefined,
+                originWarehouse: shipment.origin_warehouse.name,
+                totalAmountNaira: shipment.total_amount_naira ?? undefined,
+              }}
+            />
+          )}
+          <ShipmentStatusActions shipment={{ id: shipment.id, status: shipment.status }} />
+        </div>
       </div>
 
       {/* Stats grid */}

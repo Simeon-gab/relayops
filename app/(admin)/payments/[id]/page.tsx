@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { getPayment } from '@/lib/db/payments'
 import { StatusBadge } from '@/components/admin/status-badge'
+import { DraftMessageButton } from '@/components/admin/draft-message-button'
 import { formatNairaCurrency } from '@/lib/utils/format'
 
 type Props = {
@@ -54,7 +55,8 @@ export default async function PaymentDetailPage({ params }: Props) {
       </Link>
 
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
         <h1 className="text-2xl font-semibold text-slate-900">
           Payment of {formatNairaCurrency(payment.amount_naira)}
         </h1>
@@ -74,6 +76,22 @@ export default async function PaymentDetailPage({ params }: Props) {
             </span>
           )}
         </p>
+        </div>
+        <DraftMessageButton
+          label="Notify dealer"
+          dealerId={payment.dealer_id}
+          contextType="payment"
+          contextId={payment.id}
+          draftInput={{
+            messageType: 'payment_confirmed',
+            dealerName: payment.business_name,
+            dealerCity: payment.city,
+            preferredLanguage: payment.preferred_language,
+            paymentAmountNaira: payment.amount_naira,
+            paymentDate: payment.payment_date,
+            paymentMethod: payment.payment_method ?? undefined,
+          }}
+        />
       </div>
 
       {/* Details grid */}

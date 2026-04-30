@@ -33,7 +33,7 @@ type RawPaymentDetail = {
   notes: string | null
   dealer_id: string
   shipment_id: string | null
-  dealers: { id: string; business_name: string; city: string; state: string } | null
+  dealers: { id: string; business_name: string; city: string; state: string; preferred_language: string } | null
   shipments: {
     id: string
     status: string
@@ -96,7 +96,7 @@ export async function getPayment(paymentId: string): Promise<PaymentDetail | nul
   const { data, error } = await db
     .from('payments')
     .select(
-      'id, amount_naira, payment_date, payment_method, payment_reference, recorded_at, source, notes, dealer_id, shipment_id, dealers!dealer_id(id, business_name, city, state), shipments!shipment_id(id, status, dispatched_at, total_amount_naira, amount_paid_naira), users!recorded_by(email)'
+      'id, amount_naira, payment_date, payment_method, payment_reference, recorded_at, source, notes, dealer_id, shipment_id, dealers!dealer_id(id, business_name, city, state, preferred_language), shipments!shipment_id(id, status, dispatched_at, total_amount_naira, amount_paid_naira), users!recorded_by(email)'
     )
     .eq('id', paymentId)
     .is('deleted_at', null)
@@ -119,6 +119,7 @@ export async function getPayment(paymentId: string): Promise<PaymentDetail | nul
     business_name: p.dealers?.business_name ?? '—',
     city: p.dealers?.city ?? '',
     state: p.dealers?.state ?? '',
+    preferred_language: p.dealers?.preferred_language ?? 'en',
     shipment_id: p.shipment_id,
     shipment_status: p.shipments?.status ?? null,
     shipment_dispatched_at: p.shipments?.dispatched_at ?? null,

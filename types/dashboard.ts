@@ -21,6 +21,7 @@ export interface AttentionMetric {
   receipts: number
   messages: number
   overdue: number
+  pending_containers: number
 }
 
 export interface PendingOrdersMetric {

@@ -1,6 +1,7 @@
 import { Package, Truck, Receipt, AlertCircle, ClipboardList } from 'lucide-react'
 import { getDashboardStats } from '@/lib/db/dashboard-stats'
 import { StatCard } from '@/components/admin/stat-card'
+import { DailySummary } from '@/components/admin/daily-summary'
 
 export default async function DashboardPage() {
   const stats = await getDashboardStats()
@@ -11,6 +12,8 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-500">Daily operations overview.</p>
       </div>
+
+      <DailySummary />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
@@ -49,7 +52,14 @@ export default async function DashboardPage() {
           value={stats.attention !== null ? String(stats.attention.total) : '—'}
           subtitle={
             stats.attention !== null
-              ? `${stats.attention.receipts} receipts · ${stats.attention.messages} messages · ${stats.attention.overdue} overdue`
+              ? [
+                  `${stats.attention.receipts} receipts`,
+                  `${stats.attention.messages} messages`,
+                  `${stats.attention.overdue} overdue`,
+                  stats.attention.pending_containers > 0
+                    ? `${stats.attention.pending_containers} container${stats.attention.pending_containers !== 1 ? 's' : ''} to allocate`
+                    : null,
+                ].filter(Boolean).join(' · ')
               : 'data unavailable'
           }
         />

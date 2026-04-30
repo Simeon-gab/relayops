@@ -38,5 +38,6 @@ export interface DealerOrderDetail {
   business_name: string
   city: string
   state: string
+  preferred_language: string
   items: DealerOrderItemDetail[]
 }

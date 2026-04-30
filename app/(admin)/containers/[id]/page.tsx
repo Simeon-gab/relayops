@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { StatusBadge } from '@/components/admin/status-badge'
+import { AllocationStarter } from '@/components/admin/allocation-starter'
 import { getContainer } from '@/lib/db/containers'
 import type { ContainerItem } from '@/types/containers'
 
@@ -188,7 +189,7 @@ export default async function ContainerDetailPage({ params }: Props) {
       )}
 
       {/* Notes */}
-      <div>
+      <div className="mb-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Notes
         </h2>
@@ -199,6 +200,24 @@ export default async function ContainerDetailPage({ params }: Props) {
             <p className="text-sm text-slate-400">No notes.</p>
           )}
         </div>
+      </div>
+
+      {/* Allocation section */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Allocation
+        </h2>
+        {container.status === 'pending_allocation' ? (
+          <AllocationStarter containerId={container.id} />
+        ) : container.status === 'allocated' ? (
+          <div className="rounded-xl border bg-green-50 px-4 py-3 text-sm text-green-800">
+            Container has been allocated. See shipments for the resulting dealer and transfer shipments.
+          </div>
+        ) : (
+          <div className="rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Allocation not applicable for containers with status <span className="font-mono">{container.status}</span>.
+          </div>
+        )}
       </div>
     </div>
   )

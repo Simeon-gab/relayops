@@ -9,7 +9,8 @@
       "Bash(npx next *)",
       "Bash(curl *)",
       "Bash(npx shadcn@latest add popover command --yes)",
-      "Bash(npx shadcn@latest add switch --yes)"
+      "Bash(npx shadcn@latest add switch --yes)",
+      "Bash(npx ts-node --esm -e ' *)"
     ]
   }
 }

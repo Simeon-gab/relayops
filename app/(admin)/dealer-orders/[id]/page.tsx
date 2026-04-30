@@ -5,6 +5,7 @@ import { getDealerOrder } from '@/lib/db/dealer-orders'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { OrderStatusActions } from '@/components/admin/order-status-actions'
 import { OrderStatusHistory } from '@/components/admin/order-status-history'
+import { DraftMessageButton } from '@/components/admin/draft-message-button'
 import type { DealerOrderItemDetail } from '@/types/dealer-orders'
 
 type Props = {
@@ -57,6 +58,25 @@ export default async function DealerOrderDetailPage({ params }: Props) {
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={order.status} className="text-sm" />
             <OrderStatusActions order={{ id: order.id, status: order.status }} />
+            {order.status === 'pending' && (
+              <DraftMessageButton
+                label="Confirm order received"
+                dealerId={order.dealer_id}
+                contextType="dealer_order"
+                contextId={order.id}
+                draftInput={{
+                  messageType: 'order_received',
+                  dealerName: order.business_name,
+                  dealerCity: order.city,
+                  preferredLanguage: order.preferred_language,
+                  orderItems: order.items.map((i: DealerOrderItemDetail) => ({
+                    sku_code: i.sku_code,
+                    display_name: i.display_name,
+                    quantity: i.quantity_requested,
+                  })),
+                }}
+              />
+            )}
           </div>
         </div>
       </div>

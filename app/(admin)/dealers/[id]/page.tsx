@@ -4,6 +4,7 @@ import { ArrowLeft, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DealerActivityTabs } from '@/components/admin/dealer-activity-tabs'
+import { DraftMessageButton } from '@/components/admin/draft-message-button'
 import { getDealer, getDealerActivity } from '@/lib/db/dealers'
 import { formatNaira } from '@/lib/utils/format'
 
@@ -86,6 +87,16 @@ export default async function DealerDetailPage({ params }: Props) {
               New message
             </Link>
           </Button>
+          <DraftMessageButton
+            label="Compose message"
+            dealerId={dealer.id}
+            draftInput={{
+              messageType: 'custom',
+              dealerName: dealer.business_name,
+              dealerCity: dealer.city,
+              preferredLanguage: dealer.preferred_language,
+            }}
+          />
         </div>
       </div>
 

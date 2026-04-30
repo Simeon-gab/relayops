@@ -3,6 +3,13 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { getMessage, getReceiptSignedUrl } from '@/lib/db/messages'
+import { getReceiptExtraction } from '@/lib/db/receipts'
+import { createClient } from '@/lib/supabase/server'
+import { ExtractReceiptButton } from '@/components/admin/extract-receipt-button'
+import { ReceiptExtractionReview } from '@/components/admin/receipt-extraction-review'
+import { ParseMessageButton } from '@/components/admin/parse-message-button'
+import { MessageParseReview } from '@/components/admin/message-parse-review'
+import { formatNairaCurrency } from '@/lib/utils/format'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -71,13 +78,49 @@ export default async function MessageDetailPage({ params }: Props) {
   const message = await getMessage(id)
   if (!message) notFound()
 
-  // Fetch signed URLs for any receipts
-  const receiptsWithUrls = await Promise.all(
-    message.receipts.map(async (r) => ({
-      ...r,
-      signedUrl: await getReceiptSignedUrl(r.storage_path),
-    }))
+  // Fetch signed URLs + extraction data for each receipt
+  const receiptsWithData = await Promise.all(
+    message.receipts.map(async (r) => {
+      const [signedUrl, extraction] = await Promise.all([
+        getReceiptSignedUrl(r.storage_path),
+        ['pending_extraction'].includes(r.status) ? null : getReceiptExtraction(r.id),
+      ])
+      return { ...r, signedUrl, extraction }
+    })
   )
+
+  // Fetch dealer's outstanding shipments + active products for the review components
+  const db = await createClient()
+  const { data: rawShipments } = await db
+    .from('shipments')
+    .select('id, total_amount_naira, amount_paid_naira, dispatched_at, status')
+    .eq('destination_dealer_id', message.dealer_id)
+    .in('status', ['dispatched', 'in_transit', 'delivered'])
+    .is('deleted_at', null)
+    .not('total_amount_naira', 'is', null)
+    .order('dispatched_at', { ascending: false })
+    .limit(10)
+
+  type RawShipment = { id: string; total_amount_naira: number; amount_paid_naira: number; dispatched_at: string | null; status: string }
+  const dealerShipments = ((rawShipments ?? []) as unknown as RawShipment[])
+    .filter((s) => Number(s.total_amount_naira) > Number(s.amount_paid_naira))
+    .map((s) => ({
+      id: s.id,
+      outstanding: Number(s.total_amount_naira) - Number(s.amount_paid_naira),
+      dispatched_at: s.dispatched_at,
+      status: s.status,
+    }))
+
+  // Active products for SKU resolution dropdowns
+  const { data: rawProducts } = await db
+    .from('products')
+    .select('id, sku_code, display_name, category')
+    .eq('active', true)
+    .is('deleted_at', null)
+    .order('display_name')
+
+  type RawProduct = { id: string; sku_code: string; display_name: string; category: string }
+  const availableProducts = (rawProducts ?? []) as unknown as RawProduct[]
 
   return (
     <div className="px-6 py-10">
@@ -126,27 +169,37 @@ export default async function MessageDetailPage({ params }: Props) {
               </Badge>
             </div>
           )}
-          <pre className="whitespace-pre-wrap break-words px-4 py-4 font-mono text-sm text-slate-800 leading-relaxed">
+          <pre className="whitespace-pre-wrap break-words px-4 py-4 font-mono text-sm leading-relaxed text-slate-800">
             {message.original_text}
           </pre>
         </div>
-        {message.translated_text && (
-          <div className="mt-3 rounded-xl border bg-slate-50 px-4 py-4">
-            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-              English translation
-            </p>
-            <p className="text-sm text-slate-700">{message.translated_text}</p>
-          </div>
-        )}
+        {(() => {
+          // Show AI translation from parse result if available, otherwise fall back to translated_text
+          const aiTranslation = message.parse_result
+            ? ((message.parse_result.extracted_data as Record<string, unknown>)?.message_translation_english as string | null) ?? null
+            : null
+          const displayTranslation = aiTranslation ?? message.translated_text
+          if (!displayTranslation) return null
+          return (
+            <div className="mt-2 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+              <span className="mt-0.5 text-sm">🌐</span>
+              <div>
+                <span className="text-xs font-medium text-blue-500">English: </span>
+                <span className="text-sm italic text-blue-900">{displayTranslation}</span>
+              </div>
+            </div>
+          )
+        })()}
       </section>
 
       {/* Attached receipts */}
-      {receiptsWithUrls.length > 0 && (
+      {receiptsWithData.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-base font-semibold text-slate-800">Attached receipt</h2>
-          <div className="space-y-3">
-            {receiptsWithUrls.map((r) => (
+          <div className="space-y-6">
+            {receiptsWithData.map((r) => (
               <div key={r.id} className="overflow-hidden rounded-xl border bg-white">
+                {/* Image preview */}
                 {r.file_type.startsWith('image/') && r.signedUrl && (
                   <div className="border-b bg-slate-100 p-4">
                     <img
@@ -156,30 +209,54 @@ export default async function MessageDetailPage({ params }: Props) {
                     />
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-4 px-4 py-3">
+
+                {/* Status row */}
+                <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
                   <div className="flex items-center gap-3">
                     <ReceiptStatusBadge status={r.status} />
-                    <span className="text-xs text-slate-500">
-                      {formatDateTime(r.created_at)}
-                    </span>
+                    <span className="text-xs text-slate-500">{formatDateTime(r.created_at)}</span>
                   </div>
-                  {r.signedUrl && (
-                    <a
-                      href={r.signedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                    >
-                      Open
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {r.signedUrl && (
+                      <a
+                        href={r.signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                      >
+                        Open
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                    {r.status === 'pending_extraction' && (
+                      <ExtractReceiptButton receiptId={r.id} />
+                    )}
+                  </div>
                 </div>
-                <div className="border-t bg-amber-50 px-4 py-2">
-                  <p className="text-xs text-amber-700">
-                    Receipt will be processed by AI in the next phase.
-                  </p>
-                </div>
+
+                {/* Extraction panel */}
+                {r.extraction && r.status !== 'matched' && (
+                  <div className="p-4">
+                    <ReceiptExtractionReview
+                      extraction={r.extraction}
+                      receiptId={r.id}
+                      dealerShipments={dealerShipments}
+                    />
+                  </div>
+                )}
+
+                {/* Matched payment summary */}
+                {r.status === 'matched' && r.extraction && (
+                  <div className="bg-green-50 px-4 py-3">
+                    <p className="text-sm font-medium text-green-800">
+                      Payment confirmed:{' '}
+                      {r.extraction.extracted_amount_naira != null
+                        ? formatNairaCurrency(r.extraction.extracted_amount_naira)
+                        : '—'}{' '}
+                      on {r.extraction.extracted_date ?? '—'}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -188,36 +265,22 @@ export default async function MessageDetailPage({ params }: Props) {
 
       {/* AI parse result */}
       <section className="mb-8">
-        <h2 className="mb-3 text-base font-semibold text-slate-800">AI parse result</h2>
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <h2 className="text-base font-semibold text-slate-800">AI parse result</h2>
+          {!message.parse_result && (
+            <ParseMessageButton messageId={message.id} />
+          )}
+        </div>
         {message.parse_result ? (
-          <div className="rounded-xl border bg-white divide-y">
-            <div className="flex items-baseline gap-4 px-4 py-3">
-              <dt className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Intent</dt>
-              <dd className="text-sm font-medium text-slate-900">
-                {INTENT_LABELS[message.parse_result.parsed_intent] ?? message.parse_result.parsed_intent}
-              </dd>
-            </div>
-            <div className="flex items-baseline gap-4 px-4 py-3">
-              <dt className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Confidence</dt>
-              <dd className="text-sm text-slate-900">
-                {Math.round(message.parse_result.confidence * 100)}%
-              </dd>
-            </div>
-            {message.parse_result.ai_notes && (
-              <div className="flex items-baseline gap-4 px-4 py-3">
-                <dt className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Notes</dt>
-                <dd className="text-sm italic text-slate-600">{message.parse_result.ai_notes}</dd>
-              </div>
-            )}
-          </div>
+          <MessageParseReview
+            parseResult={message.parse_result}
+            messageId={message.id}
+            availableProducts={availableProducts}
+          />
         ) : (
           <div className="rounded-xl border bg-slate-50 px-4 py-8 text-center">
-            <p className="text-sm text-slate-500">
-              Message has not been processed yet.
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              AI parsing will be available in the next phase.
-            </p>
+            <p className="text-sm text-slate-500">Message has not been parsed yet.</p>
+            <p className="mt-1 text-xs text-slate-400">Click "Parse message" above to extract intent and structured data.</p>
           </div>
         )}
       </section>

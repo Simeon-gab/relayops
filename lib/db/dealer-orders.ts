@@ -32,7 +32,7 @@ type RawOrderDetail = {
   requested_at: string
   notes: string | null
   source: string
-  dealers: { id: string; business_name: string; city: string; state: string } | null
+  dealers: { id: string; business_name: string; city: string; state: string; preferred_language: string } | null
   dealer_order_items: Array<{
     id: string
     quantity_requested: number
@@ -102,7 +102,7 @@ export async function getDealerOrder(orderId: string): Promise<DealerOrderDetail
   const { data, error } = await db
     .from('dealer_orders')
     .select(
-      'id, status, requested_at, notes, source, dealers(id, business_name, city, state), dealer_order_items(id, quantity_requested, quantity_fulfilled, unit_price_naira, notes, products(id, sku_code, display_name, color, category))'
+      'id, status, requested_at, notes, source, dealers(id, business_name, city, state, preferred_language), dealer_order_items(id, quantity_requested, quantity_fulfilled, unit_price_naira, notes, products(id, sku_code, display_name, color, category))'
     )
     .eq('id', orderId)
     .is('deleted_at', null)
@@ -135,6 +135,7 @@ export async function getDealerOrder(orderId: string): Promise<DealerOrderDetail
     business_name: o.dealers?.business_name ?? '—',
     city: o.dealers?.city ?? '',
     state: o.dealers?.state ?? '',
+    preferred_language: o.dealers?.preferred_language ?? 'en',
     items,
   }
 }

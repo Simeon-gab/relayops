@@ -11,6 +11,22 @@ const CHANNEL_LABELS: Record<string, string> = {
   dealer_portal: 'Portal',
 }
 
+const INTENT_LABELS: Record<string, string> = {
+  order_request: 'Order request',
+  payment_notification: 'Payment',
+  delivery_status: 'Delivery',
+  question_inquiry: 'Question',
+  general: 'General',
+}
+
+const INTENT_COLOURS: Record<string, string> = {
+  order_request:        'bg-blue-50 text-blue-700 border-blue-100',
+  payment_notification: 'bg-green-50 text-green-700 border-green-100',
+  delivery_status:      'bg-purple-50 text-purple-700 border-purple-100',
+  question_inquiry:     'bg-amber-50 text-amber-700 border-amber-100',
+  general:              'bg-slate-100 text-slate-500',
+}
+
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-NG', {
     day: 'numeric',
@@ -54,7 +70,7 @@ export function MessagesTable({ messages }: Props) {
           <th className="px-4 py-3 font-medium text-slate-600">Preview</th>
           <th className="px-4 py-3 font-medium text-slate-600">Lang</th>
           <th className="px-4 py-3 text-center font-medium text-slate-600">Receipt</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Status</th>
+          <th className="px-4 py-3 font-medium text-slate-600">Intent</th>
         </tr>
       </thead>
       <tbody className="divide-y">
@@ -92,14 +108,12 @@ export function MessagesTable({ messages }: Props) {
               )}
             </td>
             <td className="px-4 py-3">
-              {msg.has_parse_result ? (
-                <Badge variant="secondary" className="bg-green-50 text-green-700 text-xs">
-                  Parsed
-                </Badge>
+              {msg.parse_intent ? (
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${INTENT_COLOURS[msg.parse_intent] ?? 'bg-slate-100 text-slate-600'}`}>
+                  {INTENT_LABELS[msg.parse_intent] ?? msg.parse_intent}
+                </span>
               ) : (
-                <Badge variant="outline" className="text-slate-500 text-xs">
-                  Unparsed
-                </Badge>
+                <Badge variant="outline" className="text-slate-400 text-xs">Unparsed</Badge>
               )}
             </td>
           </tr>

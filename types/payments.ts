@@ -25,6 +25,7 @@ export interface PaymentDetail {
   business_name: string
   city: string
   state: string
+  preferred_language: string
   shipment_id: string | null
   shipment_status: string | null
   shipment_dispatched_at: string | null
