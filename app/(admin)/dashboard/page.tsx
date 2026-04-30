@@ -1,10 +1,11 @@
 import { Package, Truck, Receipt, AlertCircle, ClipboardList } from 'lucide-react'
 import { getDashboardStats } from '@/lib/db/dashboard-stats'
+import { fetchDailyMetrics } from '@/lib/db/daily-metrics'
 import { StatCard } from '@/components/admin/stat-card'
 import { DailySummary } from '@/components/admin/daily-summary'
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  const [stats, metrics] = await Promise.all([getDashboardStats(), fetchDailyMetrics()])
 
   return (
     <div className="px-6 py-10">
@@ -13,7 +14,7 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-slate-500">Daily operations overview.</p>
       </div>
 
-      <DailySummary />
+      <DailySummary metrics={metrics} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard

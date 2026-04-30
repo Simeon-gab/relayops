@@ -1,9 +1,18 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+
+type AuditAction = 'order_status_changed' | 'order_auto_fulfilled'
 
 interface AuditEntry {
   id: string
+  action: AuditAction
   created_at: string
-  changes: { from?: string; to?: string; reason?: string } | null
+  changes: {
+    from?: string
+    to?: string
+    reason?: string
+    triggered_by_shipment_id?: string
+  } | null
   users: { email: string } | null
 }
 
@@ -34,10 +43,10 @@ export async function OrderStatusHistory({ orderId }: { orderId: string }) {
 
   const { data, error } = await db
     .from('audit_log')
-    .select('id, created_at, changes, users!user_id(email)')
+    .select('id, action, created_at, changes, users!user_id(email)')
     .eq('entity_type', 'dealer_order')
     .eq('entity_id', orderId)
-    .eq('action', 'order_status_changed')
+    .in('action', ['order_status_changed', 'order_auto_fulfilled'])
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -60,6 +69,9 @@ export async function OrderStatusHistory({ orderId }: { orderId: string }) {
             const from = entry.changes?.from
             const to = entry.changes?.to
             const reason = entry.changes?.reason
+            const shipmentId = entry.changes?.triggered_by_shipment_id
+            const isAuto = entry.action === 'order_auto_fulfilled'
+
             return (
               <div key={entry.id} className="px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -72,9 +84,28 @@ export async function OrderStatusHistory({ orderId }: { orderId: string }) {
                     {formatDateTime(entry.created_at)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  by {entry.users?.email ?? 'unknown'}
-                </p>
+
+                {isAuto ? (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Auto-updated — shipment{' '}
+                    {shipmentId ? (
+                      <Link
+                        href={`/shipments/${shipmentId}`}
+                        className="font-mono text-blue-600 hover:underline"
+                      >
+                        #{shipmentId.slice(-8)}
+                      </Link>
+                    ) : (
+                      'unknown'
+                    )}{' '}
+                    marked delivered
+                  </p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    by {entry.users?.email ?? 'unknown'}
+                  </p>
+                )}
+
                 {reason && (
                   <p className="mt-1 text-sm italic text-slate-600">{reason}</p>
                 )}

@@ -6,8 +6,8 @@ import { getNLQuerySystemPrompt, getNLQueryUserPrompt } from '@/lib/ai/prompts/n
 import {
   getDailySummarySystemPrompt,
   getDailySummaryUserPrompt,
-  type DailySummaryMetrics,
 } from '@/lib/ai/prompts/daily-summary'
+import { fetchDailyMetrics, type DailySummaryMetrics } from '@/lib/db/daily-metrics'
 import { validateGeneratedSQL } from '@/lib/ai/sql-safety'
 import { executeReadOnlyQuery, type QueryResult } from '@/lib/db/nl-query-client'
 
@@ -123,166 +123,73 @@ export type DailySummarySuccess = {
 export type DailySummaryFailure = { success: false; error: string }
 export type DailySummaryResult = DailySummarySuccess | DailySummaryFailure
 
-export async function generateDailySummary(): Promise<DailySummaryResult> {
+// Shared Claude call — used by both generateDailySummary and generateDailySummaryFromMetrics
+async function callDailySummaryAI(metrics: DailySummaryMetrics): Promise<DailySummarySuccess> {
+  const dateLabel = new Date().toLocaleDateString('en-NG', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  })
+
+  const raw = await callClaudeText(
+    getDailySummarySystemPrompt(),
+    getDailySummaryUserPrompt(metrics, dateLabel)
+  )
+
+  const jsonMatch = raw.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('No JSON in model response.')
+
+  const parsed = JSON.parse(jsonMatch[0]) as {
+    summary_text: string
+    key_metrics: {
+      shipments_dispatched_yesterday: number
+      payments_received_yesterday_naira: number
+      new_orders_yesterday: number
+      pending_review_items: number
+    }
+    items_needing_attention: {
+      type: string
+      description: string
+      severity: 'high' | 'medium' | 'low'
+    }[]
+  }
+
+  return {
+    success: true,
+    summary_text: parsed.summary_text,
+    key_metrics: parsed.key_metrics,
+    items_needing_attention: parsed.items_needing_attention ?? [],
+  }
+}
+
+async function authAdmin() {
   const db = await createClient()
-  const {
-    data: { user },
-  } = await db.auth.getUser()
-  if (!user) return { success: false, error: 'Not authenticated.' }
-
+  const { data: { user } } = await db.auth.getUser()
+  if (!user) return null
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Admin access required.' }
+  if (adminUser?.role !== 'admin') return null
+  return user
+}
 
+// Fetches metrics then calls AI — kept for backward compatibility
+export async function generateDailySummary(): Promise<DailySummaryResult> {
+  if (!(await authAdmin())) return { success: false, error: 'Not authenticated or not admin.' }
   try {
-    const now = new Date()
-    const todayStart = new Date(now)
-    todayStart.setHours(0, 0, 0, 0)
-
-    const yesterdayStart = new Date(todayStart)
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
-
-    const sevenDaysAgo = new Date(todayStart)
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-    const [
-      dispatchedRes,
-      deliveredRes,
-      paymentsRes,
-      ordersRes,
-      pendingOrdersRes,
-      overdueRes,
-      lowStockRes,
-    ] = await Promise.all([
-      db
-        .from('shipments')
-        .select('id', { count: 'exact', head: true })
-        .gte('dispatched_at', yesterdayStart.toISOString())
-        .lt('dispatched_at', todayStart.toISOString())
-        .is('deleted_at', null),
-
-      db
-        .from('shipments')
-        .select('id', { count: 'exact', head: true })
-        .gte('delivered_at', yesterdayStart.toISOString())
-        .lt('delivered_at', todayStart.toISOString())
-        .is('deleted_at', null),
-
-      db
-        .from('payments')
-        .select('amount_naira')
-        .gte('recorded_at', yesterdayStart.toISOString())
-        .lt('recorded_at', todayStart.toISOString())
-        .is('deleted_at', null),
-
-      db
-        .from('dealer_orders')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', yesterdayStart.toISOString())
-        .lt('created_at', todayStart.toISOString())
-        .is('deleted_at', null),
-
-      db
-        .from('dealer_orders')
-        .select('id', { count: 'exact', head: true })
-        .in('status', ['pending', 'partially_fulfilled'])
-        .is('deleted_at', null),
-
-      db
-        .from('shipments')
-        .select('destination_city, destination_state, dispatched_at')
-        .eq('status', 'dispatched')
-        .lt('dispatched_at', sevenDaysAgo.toISOString())
-        .is('deleted_at', null)
-        .limit(10),
-
-      db
-        .from('warehouse_stock')
-        .select('quantity, warehouses(code), products(display_name, sku_code)')
-        .lt('quantity', 5)
-        .gt('quantity', 0),
-    ])
-
-    const shipmentsDispatched = dispatchedRes.count ?? 0
-    const deliveriesConfirmed = deliveredRes.count ?? 0
-    const newOrders = ordersRes.count ?? 0
-    const pendingOrdersTotal = pendingOrdersRes.count ?? 0
-
-    type PayRow = { amount_naira: number }
-    const paymentsNaira = ((paymentsRes.data ?? []) as PayRow[]).reduce(
-      (sum, r) => sum + Number(r.amount_naira),
-      0
-    )
-
-    type OverdueRow = { destination_city: string | null; destination_state: string | null; dispatched_at: string | null }
-    const overdueShipments = ((overdueRes.data ?? []) as OverdueRow[]).map(s => ({
-      destination:
-        [s.destination_city, s.destination_state].filter(Boolean).join(', ') || 'unknown location',
-      dispatched_at: s.dispatched_at,
-    }))
-
-    type StockRow = {
-      quantity: number
-      warehouses: { code: string } | null
-      products: { display_name: string; sku_code: string } | null
-    }
-    const lowStockItems = ((lowStockRes.data ?? []) as unknown as StockRow[]).map(r => ({
-      product: r.products?.display_name ?? 'Unknown',
-      sku: r.products?.sku_code ?? '',
-      warehouse: r.warehouses?.code ?? 'Unknown',
-      quantity: r.quantity,
-    }))
-
-    const metrics: DailySummaryMetrics = {
-      shipments_dispatched_yesterday: shipmentsDispatched,
-      deliveries_confirmed_yesterday: deliveriesConfirmed,
-      payments_received_yesterday_naira: paymentsNaira,
-      new_orders_yesterday: newOrders,
-      pending_orders_total: pendingOrdersTotal,
-      overdue_shipments: overdueShipments,
-      low_stock_items: lowStockItems,
-    }
-
-    const dateLabel = now.toLocaleDateString('en-NG', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-
-    const raw = await callClaudeText(
-      getDailySummarySystemPrompt(),
-      getDailySummaryUserPrompt(metrics, dateLabel)
-    )
-
-    const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('No JSON in model response.')
-
-    const parsed = JSON.parse(jsonMatch[0]) as {
-      summary_text: string
-      key_metrics: {
-        shipments_dispatched_yesterday: number
-        payments_received_yesterday_naira: number
-        new_orders_yesterday: number
-        pending_review_items: number
-      }
-      items_needing_attention: {
-        type: string
-        description: string
-        severity: 'high' | 'medium' | 'low'
-      }[]
-    }
-
-    return {
-      success: true,
-      summary_text: parsed.summary_text,
-      key_metrics: parsed.key_metrics,
-      items_needing_attention: parsed.items_needing_attention ?? [],
-    }
+    const metrics = await fetchDailyMetrics()
+    return await callDailySummaryAI(metrics)
   } catch (err) {
     console.error('[generateDailySummary]', err)
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'An unexpected error occurred.',
-    }
+    return { success: false, error: err instanceof Error ? err.message : 'An unexpected error occurred.' }
+  }
+}
+
+// Accepts pre-computed metrics (from server-rendered page) — avoids re-fetching DB data
+export async function generateDailySummaryFromMetrics(
+  metrics: DailySummaryMetrics
+): Promise<DailySummaryResult> {
+  if (!(await authAdmin())) return { success: false, error: 'Not authenticated or not admin.' }
+  try {
+    return await callDailySummaryAI(metrics)
+  } catch (err) {
+    console.error('[generateDailySummaryFromMetrics]', err)
+    return { success: false, error: err instanceof Error ? err.message : 'An unexpected error occurred.' }
   }
 }

@@ -143,7 +143,17 @@ export function ShipmentStatusActions({ shipment }: Props) {
       )
 
       if (result.success) {
-        toast.success(activeAction.successMessage)
+        let msg = activeAction.successMessage
+        if (result.ordersAutoUpdated.length > 0) {
+          const n = result.ordersAutoUpdated.length
+          const statuses = [...new Set(result.ordersAutoUpdated.map(o => o.newStatus))]
+          const statusText =
+            statuses.length === 1
+              ? statuses[0].replace(/_/g, ' ')
+              : 'fulfilled or partially fulfilled'
+          msg += `. ${n} order${n !== 1 ? 's' : ''} auto-updated to ${statusText}.`
+        }
+        toast.success(msg)
         setActiveAction(null)
         setNotes('')
       } else {
