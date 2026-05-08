@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
+import { notifyAllAdmins } from '@/lib/notifications'
 
 const VALID_METHODS = ['bank_transfer', 'cash', 'pos'] as const
 type PaymentMethod = typeof VALID_METHODS[number]
@@ -136,6 +137,20 @@ export async function createPayment(
     if (input.shipment_id) {
       revalidatePath(`/shipments/${input.shipment_id}`)
     }
+
+    const { data: dealerInfo } = await db
+      .from('dealers')
+      .select('business_name')
+      .eq('id', input.dealer_id)
+      .single()
+
+    notifyAllAdmins({
+      eventType: 'payment_received',
+      title: `Payment of ₦${input.amount_naira.toLocaleString()} from ${dealerInfo?.business_name ?? 'dealer'}`,
+      description: input.shipment_id ? 'Linked to shipment' : 'Standalone payment',
+      entityType: 'payment',
+      entityId: paymentId,
+    }).catch(() => {})
 
     return { success: true, paymentId }
   } catch (err) {

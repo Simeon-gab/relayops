@@ -62,6 +62,26 @@ export async function getWarehouse(id: string): Promise<WarehouseSummary | null>
   return toSummary(data as unknown as RawWarehouse)
 }
 
+export async function getWarehouseStockForProducts(
+  warehouseId: string,
+  productIds: string[]
+): Promise<Map<string, number>> {
+  if (!productIds.length) return new Map()
+  const db = await createClient()
+  const { data, error } = await db
+    .from('warehouse_stock')
+    .select('product_id, quantity')
+    .eq('warehouse_id', warehouseId)
+    .in('product_id', productIds)
+
+  if (error) return new Map()
+  const map = new Map<string, number>()
+  for (const row of (data ?? []) as { product_id: string; quantity: number }[]) {
+    map.set(row.product_id, row.quantity)
+  }
+  return map
+}
+
 export async function getWarehouseStock(warehouseId: string): Promise<WarehouseStockRow[]> {
   const db = await createClient()
 

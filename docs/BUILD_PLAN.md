@@ -248,6 +248,7 @@ Time estimates assume focused, full-time work. Actual wall-clock time depends on
 
 ## Block 12 — Daily summary + natural-language query (≈3 hours)
 
+
 **Goal.** Admin dashboard shows AI-generated daily summary and supports natural-language queries.
 
 **Tasks.**

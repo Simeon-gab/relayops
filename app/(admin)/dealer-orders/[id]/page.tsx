@@ -1,11 +1,14 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getDealerOrder } from '@/lib/db/dealer-orders'
+import { getDealerOrder, getOrderLinkedShipments } from '@/lib/db/dealer-orders'
+import { getWarehouses } from '@/lib/db/warehouses'
+import { getWarehouseStockForProducts } from '@/lib/db/warehouses'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { OrderStatusActions } from '@/components/admin/order-status-actions'
 import { OrderStatusHistory } from '@/components/admin/order-status-history'
 import { DraftMessageButton } from '@/components/admin/draft-message-button'
+import { CreateShipmentFromOrder } from '@/components/admin/create-shipment-from-order'
 import type { DealerOrderItemDetail } from '@/types/dealer-orders'
 
 type Props = {
@@ -18,6 +21,11 @@ function formatDate(iso: string): string {
   })
 }
 
+function formatNaira(n: number | null): string {
+  if (n == null) return '—'
+  return `₦${n.toLocaleString()}`
+}
+
 function lineStatus(item: DealerOrderItemDetail): string {
   if (item.quantity_fulfilled >= item.quantity_requested) return 'fulfilled'
   if (item.quantity_fulfilled > 0) return 'partially_fulfilled'
@@ -26,8 +34,21 @@ function lineStatus(item: DealerOrderItemDetail): string {
 
 export default async function DealerOrderDetailPage({ params }: Props) {
   const { id } = await params
-  const order = await getDealerOrder(id)
+  const [order, warehouses, linkedShipments] = await Promise.all([
+    getDealerOrder(id),
+    getWarehouses(),
+    getOrderLinkedShipments(id),
+  ])
   if (!order) notFound()
+
+  const productIds = order.items.map((i) => i.product_id)
+  const stockEntries = await Promise.all(
+    warehouses.map(async (w) => {
+      const stockMap = await getWarehouseStockForProducts(w.id, productIds)
+      return [w.id, Object.fromEntries(stockMap)] as [string, Record<string, number>]
+    })
+  )
+  const stockByWarehouse: Record<string, Record<string, number>> = Object.fromEntries(stockEntries)
 
   const totalQty = order.items.reduce((s, i) => s + i.quantity_requested, 0)
   const totalFulfilled = order.items.reduce((s, i) => s + i.quantity_fulfilled, 0)
@@ -58,6 +79,11 @@ export default async function DealerOrderDetailPage({ params }: Props) {
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={order.status} className="text-sm" />
             <OrderStatusActions order={{ id: order.id, status: order.status }} />
+            <CreateShipmentFromOrder
+              order={order}
+              warehouses={warehouses}
+              stockByWarehouse={stockByWarehouse}
+            />
             {order.status === 'pending' && (
               <DraftMessageButton
                 label="Confirm order received"
@@ -150,12 +176,57 @@ export default async function DealerOrderDetailPage({ params }: Props) {
       {/* Status history */}
       <OrderStatusHistory orderId={order.id} />
 
-      {/* Linked shipments — placeholder */}
-      <section>
+      {/* Linked shipments */}
+      <section className="mt-8">
         <h2 className="mb-3 text-base font-semibold text-slate-800">Linked shipments</h2>
-        <div className="rounded-xl border border-dashed bg-white px-4 py-8 text-center text-sm text-slate-400">
-          Shipment linking coming soon.
-        </div>
+        {linkedShipments.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-white px-4 py-8 text-center text-sm text-slate-400">
+            No shipments yet.{' '}
+            {(order.status === 'pending' || order.status === 'partially_fulfilled') && totalRemaining > 0
+              ? "Click 'Create shipment' above to start dispatching."
+              : ''}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-slate-50 text-left">
+                  <th className="px-4 py-3 font-medium text-slate-600">Shipment ID</th>
+                  <th className="px-4 py-3 font-medium text-slate-600">Status</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">Total</th>
+                  <th className="px-4 py-3 font-medium text-slate-600">Dispatched</th>
+                  <th className="px-4 py-3 font-medium text-slate-600">Delivered</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {linkedShipments.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/shipments/${s.id}`}
+                        className="font-mono text-xs text-blue-600 hover:underline"
+                      >
+                        {s.id.slice(0, 8)}…
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={s.status} />
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-700">
+                      {formatNaira(s.total_amount_naira)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">
+                      {s.dispatched_at ? formatDate(s.dispatched_at) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">
+                      {s.delivered_at ? formatDate(s.delivered_at) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   )

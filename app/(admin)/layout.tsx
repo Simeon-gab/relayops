@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { NavLinks } from '@/components/admin/nav-links'
 import { MobileNav } from '@/components/admin/mobile-nav'
+import { NotificationsBell } from '@/components/admin/notifications-bell'
 import { Toaster } from '@/components/ui/sonner'
 
 export default async function AdminLayout({
@@ -43,6 +44,7 @@ export default async function AdminLayout({
         <header className="flex h-14 shrink-0 items-center border-b bg-white px-4">
           <MobileNav />
           <div className="flex flex-1 items-center justify-end gap-3">
+            <NotificationsBell />
             <span className="text-sm text-slate-500">{user.email}</span>
             <SignOutButton />
           </div>

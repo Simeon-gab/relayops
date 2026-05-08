@@ -141,6 +141,21 @@ export async function createInboundMessage(
     revalidatePath(`/dealers/${input.dealer_id}`)
     revalidatePath('/dashboard')
 
+    const { data: dealerInfo } = await db
+      .from('dealers')
+      .select('business_name')
+      .eq('id', input.dealer_id)
+      .single()
+
+    const { notifyAllAdmins } = await import('@/lib/notifications')
+    notifyAllAdmins({
+      eventType: 'message_received',
+      title: `New message from ${dealerInfo?.business_name ?? 'dealer'}`,
+      description: input.original_text.slice(0, 80),
+      entityType: 'message',
+      entityId: messageId,
+    }).catch(() => {})
+
     return { success: true, messageId, receiptId: receiptId ?? undefined }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -358,6 +373,21 @@ export async function convertParseToOrder(
   revalidatePath(`/dealers/${dealerId}`)
   revalidatePath('/dealer-orders')
   revalidatePath('/dashboard')
+
+  const { data: dealerNameRow } = await db
+    .from('dealers')
+    .select('business_name')
+    .eq('id', dealerId)
+    .single()
+
+  const { notifyAllAdmins: notifyAdmins } = await import('@/lib/notifications')
+  notifyAdmins({
+    eventType: 'order_created',
+    title: `[AI parsed] New order from ${dealerNameRow?.business_name ?? 'dealer'}`,
+    description: `${items.length} item(s) extracted from message`,
+    entityType: 'order',
+    entityId: orderId,
+  }).catch(() => {})
 
   return { success: true, orderId }
 }

@@ -1,6 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import type { DealerOrderSummary, DealerOrderDetail, DealerOrderItemDetail } from '@/types/dealer-orders'
 
+export interface LinkedShipmentSummary {
+  id: string
+  status: string
+  total_amount_naira: number | null
+  dispatched_at: string | null
+  delivered_at: string | null
+  items_count: number
+}
+
 const STATUS_PRIORITY: Record<string, number> = {
   pending: 1,
   partially_fulfilled: 2,
@@ -138,4 +147,49 @@ export async function getDealerOrder(orderId: string): Promise<DealerOrderDetail
     preferred_language: o.dealers?.preferred_language ?? 'en',
     items,
   }
+}
+
+export async function getOrderLinkedShipments(
+  orderId: string
+): Promise<LinkedShipmentSummary[]> {
+  const db = await createClient()
+
+  const { data: orderItems } = await db
+    .from('dealer_order_items')
+    .select('id')
+    .eq('dealer_order_id', orderId)
+
+  const orderItemIds = (orderItems ?? []).map((i: { id: string }) => i.id)
+  if (!orderItemIds.length) return []
+
+  const { data: links } = await db
+    .from('shipment_items')
+    .select('shipment_id')
+    .in('dealer_order_item_id', orderItemIds)
+
+  const shipmentIds = [...new Set((links ?? []).map((l: { shipment_id: string }) => l.shipment_id))]
+  if (!shipmentIds.length) return []
+
+  const { data: shipments } = await db
+    .from('shipments')
+    .select('id, status, total_amount_naira, dispatched_at, delivered_at, shipment_items(id)')
+    .in('id', shipmentIds)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+
+  return ((shipments ?? []) as unknown as Array<{
+    id: string
+    status: string
+    total_amount_naira: number | null
+    dispatched_at: string | null
+    delivered_at: string | null
+    shipment_items: Array<{ id: string }>
+  }>).map((s) => ({
+    id: s.id,
+    status: s.status,
+    total_amount_naira: s.total_amount_naira != null ? Number(s.total_amount_naira) : null,
+    dispatched_at: s.dispatched_at,
+    delivered_at: s.delivered_at,
+    items_count: s.shipment_items.length,
+  }))
 }

@@ -136,6 +136,17 @@ export async function createContainer(
 
     revalidatePath('/containers')
 
+    const totalItems = input.items.reduce((s, i) => s + i.quantity, 0)
+    const skuCount = input.items.length
+    const { notifyAllAdmins } = await import('@/lib/notifications')
+    notifyAllAdmins({
+      eventType: 'allocation_pending',
+      title: `New container ${input.container_number.trim()} arrived`,
+      description: `${totalItems} units across ${skuCount} SKU(s) awaiting allocation`,
+      entityType: 'container',
+      entityId: containerId,
+    }).catch(() => {})
+
     return { success: true, containerId }
   } catch (err) {
     await client.query('ROLLBACK')

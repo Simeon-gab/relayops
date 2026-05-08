@@ -247,6 +247,19 @@ export async function extractReceipt(receiptId: string): Promise<ExtractionResul
   revalidatePath('/messages')
   revalidatePath('/dashboard')
 
+  if (newStatus === 'extracted' || newStatus === 'needs_review') {
+    const { notifyAllAdmins } = await import('@/lib/notifications')
+    notifyAllAdmins({
+      eventType: 'receipt_extracted',
+      title: e.amount_naira
+        ? `Receipt extracted: ₦${Number(e.amount_naira).toLocaleString()}`
+        : 'Receipt extracted',
+      description: confidence < 0.8 ? 'Needs review — low confidence' : 'High confidence extraction',
+      entityType: 'receipt',
+      entityId: receiptId,
+    }).catch(() => {})
+  }
+
   return { success: true, extractionId, status: newStatus, confidence }
 }
 

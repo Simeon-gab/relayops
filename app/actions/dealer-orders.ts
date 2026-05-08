@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
+import { notifyAllAdmins } from '@/lib/notifications'
 
 // ─── Status transition helpers ────────────────────────────────────────────────
 
@@ -132,6 +133,20 @@ export async function createDealerOrder(
     await client.query('COMMIT')
 
     revalidatePath(`/dealers/${input.dealer_id}`)
+
+    const { data: dealerInfo } = await db
+      .from('dealers')
+      .select('business_name')
+      .eq('id', input.dealer_id)
+      .single()
+
+    notifyAllAdmins({
+      eventType: 'order_created',
+      title: `New order from ${dealerInfo?.business_name ?? 'dealer'}`,
+      description: `${input.items.length} item(s) requested`,
+      entityType: 'order',
+      entityId: orderId,
+    }).catch(() => {})
 
     return { success: true, orderId, dealerId: input.dealer_id }
   } catch (err) {
