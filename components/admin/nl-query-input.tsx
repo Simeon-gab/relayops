@@ -43,7 +43,7 @@ export function NLQueryInput({ onSubmit, loading }: Props) {
           onChange={e => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={loading}
-          className="w-full resize-none rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-60"
+          className="w-full resize-none rounded-xl border border-border bg-white py-3 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
         />
       </div>
 
@@ -53,7 +53,7 @@ export function NLQueryInput({ onSubmit, loading }: Props) {
             key={chip}
             onClick={() => { setQuestion(chip); submit(chip) }}
             disabled={loading}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+            className="rounded-full border border-border bg-white px-3 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
           >
             {chip}
           </button>

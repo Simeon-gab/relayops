@@ -19,7 +19,7 @@ const columns: Column<ProductSummary>[] = [
           className="h-9 w-9 rounded object-cover"
         />
       ) : (
-        <div className="h-9 w-9 rounded bg-slate-100" />
+        <div className="h-9 w-9 rounded bg-muted" />
       ),
   },
   {

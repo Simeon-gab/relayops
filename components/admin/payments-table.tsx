@@ -41,7 +41,7 @@ export function PaymentsTable({ payments }: Props) {
     <div className="overflow-hidden rounded-xl border bg-white">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-slate-50 text-left">
+          <tr className="border-b bg-subtle text-left">
             <th className="px-4 py-3 font-medium text-slate-600">Date</th>
             <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
             <th className="px-4 py-3 text-right font-medium text-slate-600">Amount</th>
@@ -55,7 +55,7 @@ export function PaymentsTable({ payments }: Props) {
             <tr
               key={p.id}
               onClick={() => router.push(`/payments/${p.id}`)}
-              className="cursor-pointer hover:bg-slate-50"
+              className="cursor-pointer hover:bg-subtle"
             >
               <td className="px-4 py-3 text-slate-600">{formatDate(p.payment_date)}</td>
               <td className="px-4 py-3">

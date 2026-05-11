@@ -54,7 +54,7 @@ export default async function ShipmentDetailPage({ params }: Props) {
       {/* Back link */}
       <Link
         href="/shipments"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-heading"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to shipments
@@ -64,13 +64,13 @@ export default async function ShipmentDetailPage({ params }: Props) {
       <div className="mb-8 mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-heading">
               {heading}{' '}
-              <span className="font-mono text-slate-500">#{shortId}</span>
+              <span className="font-mono text-muted-foreground">#{shortId}</span>
             </h1>
             <StatusBadge status={shipment.status} />
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Dispatched {formatDate(shipment.dispatched_at)} ·{' '}
             {totalItems} unit{totalItems !== 1 ? 's' : ''}
           </p>
@@ -106,50 +106,50 @@ export default async function ShipmentDetailPage({ params }: Props) {
       {/* Stats grid */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border bg-white p-4">
-          <p className="text-xs text-slate-500">Origin</p>
-          <p className="mt-1 font-mono text-base font-semibold text-slate-900">
+          <p className="text-xs text-muted-foreground">Origin</p>
+          <p className="mt-1 font-mono text-base font-semibold text-heading">
             {shipment.origin_warehouse.code}
           </p>
-          <p className="text-xs text-slate-400">{shipment.origin_warehouse.name}</p>
+          <p className="text-xs text-muted-foreground">{shipment.origin_warehouse.name}</p>
         </div>
 
         <div className="rounded-xl border bg-white p-4">
-          <p className="text-xs text-slate-500">Destination</p>
+          <p className="text-xs text-muted-foreground">Destination</p>
           {isDealer && shipment.destination_dealer ? (
             <>
-              <p className="mt-1 text-base font-semibold text-slate-900">
+              <p className="mt-1 text-base font-semibold text-heading">
                 {shipment.destination_dealer.business_name}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 {shipment.destination_city}, {shipment.destination_state}
               </p>
             </>
           ) : shipment.destination_warehouse ? (
             <>
-              <p className="mt-1 font-mono text-base font-semibold text-slate-900">
+              <p className="mt-1 font-mono text-base font-semibold text-heading">
                 {shipment.destination_warehouse.code}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 {shipment.destination_warehouse.name}
               </p>
             </>
           ) : (
-            <p className="mt-1 text-base font-semibold text-slate-500">—</p>
+            <p className="mt-1 text-base font-semibold text-muted-foreground">—</p>
           )}
         </div>
 
         {isDealer && (
           <>
             <div className="rounded-xl border bg-white p-4">
-              <p className="text-xs text-slate-500">Total amount</p>
-              <p className="mt-1 text-base font-semibold tabular-nums text-slate-900">
+              <p className="text-xs text-muted-foreground">Total amount</p>
+              <p className="mt-1 text-base font-semibold tabular-nums text-heading">
                 {shipment.total_amount_naira != null
                   ? formatNairaCurrency(shipment.total_amount_naira)
                   : '—'}
               </p>
             </div>
             <div className="rounded-xl border bg-white p-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {shipment.amount_paid_naira >= (shipment.total_amount_naira ?? 0)
                   ? 'Paid in full'
                   : 'Outstanding'}
@@ -167,7 +167,7 @@ export default async function ShipmentDetailPage({ params }: Props) {
                   )}
                 </p>
               ) : (
-                <p className="mt-1 text-base font-semibold text-slate-500">—</p>
+                <p className="mt-1 text-base font-semibold text-muted-foreground">—</p>
               )}
             </div>
           </>
@@ -176,23 +176,23 @@ export default async function ShipmentDetailPage({ params }: Props) {
 
       {/* Shipment items */}
       <div className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Shipment items
         </h2>
         <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-slate-50 text-left">
-                <th className="px-4 py-3 font-medium text-slate-600">SKU</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Product</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Color</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-600">Qty</th>
+              <tr className="border-b bg-subtle text-left">
+                <th className="px-4 py-3 font-medium text-muted-foreground">SKU</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">Product</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">Color</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Qty</th>
                 {isDealer && (
                   <>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600">
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                       Unit price
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600">
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                       Subtotal
                     </th>
                   </>
@@ -212,16 +212,16 @@ export default async function ShipmentDetailPage({ params }: Props) {
               ) : (
                 <>
                   {shipment.items.map((item: ShipmentItemRow) => (
-                    <tr key={item.product_id} className="hover:bg-slate-50">
+                    <tr key={item.product_id} className="hover:bg-subtle">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-slate-600">
+                        <span className="font-mono text-xs text-muted-foreground">
                           {item.sku_code}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-900">
+                      <td className="px-4 py-3 font-medium text-heading">
                         {item.display_name}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {item.color ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -229,12 +229,12 @@ export default async function ShipmentDetailPage({ params }: Props) {
                       </td>
                       {isDealer && (
                         <>
-                          <td className="px-4 py-3 text-right tabular-nums text-slate-600">
+                          <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
                             {item.unit_price_naira != null
                               ? formatNairaCurrency(item.unit_price_naira)
                               : '—'}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-slate-700">
+                          <td className="px-4 py-3 text-right tabular-nums text-foreground">
                             {item.unit_price_naira != null
                               ? formatNairaCurrency(item.quantity * item.unit_price_naira)
                               : '—'}
@@ -243,10 +243,10 @@ export default async function ShipmentDetailPage({ params }: Props) {
                       )}
                     </tr>
                   ))}
-                  <tr className="border-t-2 bg-slate-50">
+                  <tr className="border-t-2 bg-subtle">
                     <td
                       colSpan={isDealer ? 3 : 3}
-                      className="px-4 py-3 text-sm font-semibold text-slate-700"
+                      className="px-4 py-3 text-sm font-semibold text-foreground"
                     >
                       Total
                     </td>
@@ -273,12 +273,12 @@ export default async function ShipmentDetailPage({ params }: Props) {
 
       {/* Timeline */}
       <div className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Timeline
         </h2>
         <div className="rounded-xl border bg-white px-4 py-4">
           {shipment.status_events.length === 0 ? (
-            <p className="text-sm text-slate-400">No status events recorded.</p>
+            <p className="text-sm text-muted-foreground">No status events recorded.</p>
           ) : (
             <ol className="space-y-0">
               {shipment.status_events.map((ev: StatusEvent, idx) => (
@@ -293,15 +293,15 @@ export default async function ShipmentDetailPage({ params }: Props) {
                   <div className="pb-5 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={ev.to_status} />
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatDateTime(ev.event_at)}
                       </span>
-                      <span className="text-xs text-slate-400 capitalize">
+                      <span className="text-xs text-muted-foreground capitalize">
                         via {ev.source.replace(/_/g, ' ')}
                       </span>
                     </div>
                     {ev.notes && (
-                      <p className="mt-1 text-sm text-slate-500">{ev.notes}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{ev.notes}</p>
                     )}
                   </div>
                 </li>
@@ -313,14 +313,14 @@ export default async function ShipmentDetailPage({ params }: Props) {
 
       {/* Destination details */}
       <div className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Destination details
         </h2>
         <div className="rounded-xl border bg-white px-4 py-4">
           {isDealer && shipment.destination_dealer ? (
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-slate-500">Business</dt>
+                <dt className="text-xs text-muted-foreground">Business</dt>
                 <dd className="mt-0.5 text-sm font-medium">
                   <Link
                     href={`/dealers/${shipment.destination_dealer.id}`}
@@ -331,25 +331,25 @@ export default async function ShipmentDetailPage({ params }: Props) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Contact</dt>
+                <dt className="text-xs text-muted-foreground">Contact</dt>
                 <dd className="mt-0.5 text-sm font-medium">
                   {shipment.destination_dealer.contact_name}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Phone</dt>
+                <dt className="text-xs text-muted-foreground">Phone</dt>
                 <dd className="mt-0.5 text-sm font-medium">
                   {shipment.destination_dealer.phone}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Location</dt>
+                <dt className="text-xs text-muted-foreground">Location</dt>
                 <dd className="mt-0.5 text-sm font-medium">
                   {shipment.destination_dealer.city}, {shipment.destination_dealer.state}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Language</dt>
+                <dt className="text-xs text-muted-foreground">Language</dt>
                 <dd className="mt-0.5 text-sm font-medium">
                   {LANG_LABELS[shipment.destination_dealer.preferred_language] ??
                     shipment.destination_dealer.preferred_language.toUpperCase()}
@@ -359,34 +359,34 @@ export default async function ShipmentDetailPage({ params }: Props) {
           ) : shipment.destination_warehouse ? (
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-slate-500">Warehouse</dt>
+                <dt className="text-xs text-muted-foreground">Warehouse</dt>
                 <dd className="mt-0.5 font-mono text-sm font-medium">
                   {shipment.destination_warehouse.code}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Name</dt>
+                <dt className="text-xs text-muted-foreground">Name</dt>
                 <dd className="mt-0.5 text-sm font-medium">
                   {shipment.destination_warehouse.name}
                 </dd>
               </div>
             </dl>
           ) : (
-            <p className="text-sm text-slate-400">No destination details available.</p>
+            <p className="text-sm text-muted-foreground">No destination details available.</p>
           )}
         </div>
       </div>
 
       {/* Notes */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Notes
         </h2>
         <div className="rounded-xl border bg-white px-4 py-4">
           {shipment.notes ? (
-            <p className="text-sm text-slate-700">{shipment.notes}</p>
+            <p className="text-sm text-foreground">{shipment.notes}</p>
           ) : (
-            <p className="text-sm text-slate-400">No notes.</p>
+            <p className="text-sm text-muted-foreground">No notes.</p>
           )}
         </div>
       </div>

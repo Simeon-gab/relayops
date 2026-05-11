@@ -67,7 +67,7 @@ export default async function DealerOrdersPage({ searchParams }: Props) {
       <div className="overflow-hidden rounded-xl border bg-white">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-slate-50 text-left">
+            <tr className="border-b bg-subtle text-left">
               <th className="px-4 py-3 font-medium text-slate-600">Order date</th>
               <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
               <th className="px-4 py-3 font-medium text-slate-600">Items</th>
@@ -86,7 +86,7 @@ export default async function DealerOrdersPage({ searchParams }: Props) {
               orders.map((order) => (
                 <tr
                   key={order.id}
-                  className="hover:bg-slate-50"
+                  className="hover:bg-subtle"
                 >
                   <td className="px-4 py-3">
                     <Link href={`/dealer-orders/${order.id}`} className="block w-full">

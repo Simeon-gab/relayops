@@ -8,15 +8,16 @@ export default async function DashboardPage() {
   const [stats, metrics] = await Promise.all([getDashboardStats(), fetchDailyMetrics()])
 
   return (
-    <div className="px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Daily operations overview.</p>
+    <div className="px-8 py-8">
+      <div className="mb-6">
+        <h1 className="text-[28px] font-bold tracking-tight text-heading">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Daily operations overview.</p>
       </div>
 
       <DailySummary metrics={metrics} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* Top row: 3 cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           title="Warehouse Stock"
           icon={Package}
@@ -37,6 +38,21 @@ export default async function DashboardPage() {
               : 'data unavailable'
           }
         />
+        <StatCard
+          title="Pending Orders"
+          icon={ClipboardList}
+          href="/dealer-orders"
+          value={stats.pendingOrders !== null ? String(stats.pendingOrders.total) : '—'}
+          subtitle={
+            stats.pendingOrders !== null
+              ? `${stats.pendingOrders.pending} pending · ${stats.pendingOrders.partially_fulfilled} partial`
+              : 'data unavailable'
+          }
+        />
+      </div>
+
+      {/* Bottom row: 2 cards (1/3 + 2/3) */}
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <StatCard
           title="Pending Payments"
           icon={Receipt}
@@ -63,17 +79,7 @@ export default async function DashboardPage() {
                 ].filter(Boolean).join(' · ')
               : 'data unavailable'
           }
-        />
-        <StatCard
-          title="Pending Orders"
-          icon={ClipboardList}
-          href="/dealer-orders"
-          value={stats.pendingOrders !== null ? String(stats.pendingOrders.total) : '—'}
-          subtitle={
-            stats.pendingOrders !== null
-              ? `${stats.pendingOrders.pending} pending · ${stats.pendingOrders.partially_fulfilled} partial`
-              : 'data unavailable'
-          }
+          className="sm:col-span-2"
         />
       </div>
     </div>

@@ -80,7 +80,7 @@ export default async function ContainerDetailPage({ params }: Props) {
         <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-slate-50 text-left">
+              <tr className="border-b bg-subtle text-left">
                 <th className="px-4 py-3 font-medium text-slate-600">SKU</th>
                 <th className="px-4 py-3 font-medium text-slate-600">Product name</th>
                 <th className="px-4 py-3 font-medium text-slate-600">Category</th>
@@ -103,7 +103,7 @@ export default async function ContainerDetailPage({ params }: Props) {
               ) : (
                 <>
                   {container.items.map((item: ContainerItem) => (
-                    <tr key={item.product_id} className="hover:bg-slate-50">
+                    <tr key={item.product_id} className="hover:bg-subtle">
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs text-slate-600">
                           {item.sku_code}
@@ -126,7 +126,7 @@ export default async function ContainerDetailPage({ params }: Props) {
                     </tr>
                   ))}
                   {/* Total row */}
-                  <tr className="border-t-2 bg-slate-50">
+                  <tr className="border-t-2 bg-subtle">
                     <td
                       colSpan={4}
                       className="px-4 py-3 text-sm font-semibold text-slate-700"
@@ -214,7 +214,7 @@ export default async function ContainerDetailPage({ params }: Props) {
             Container has been allocated. See shipments for the resulting dealer and transfer shipments.
           </div>
         ) : (
-          <div className="rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          <div className="rounded-xl border bg-subtle px-4 py-3 text-sm text-slate-500">
             Allocation not applicable for containers with status <span className="font-mono">{container.status}</span>.
           </div>
         )}

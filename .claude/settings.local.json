@@ -10,7 +10,11 @@
       "Bash(curl *)",
       "Bash(npx shadcn@latest add popover command --yes)",
       "Bash(npx shadcn@latest add switch --yes)",
-      "Bash(npx ts-node --esm -e ' *)"
+      "Bash(npx ts-node --esm -e ' *)",
+      "Bash(Get-ChildItem -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(git add *)",
+      "PowerShell(npm run *)"
     ]
   }
 }

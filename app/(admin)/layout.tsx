@@ -21,39 +21,39 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-white md:flex">
-        <div className="border-b px-6 py-5">
-          <span className="text-base font-bold tracking-tight text-slate-900">
-            RelayOps
-          </span>
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
+        <div className="border-b border-border px-5 py-4">
+          <span className="text-base font-bold tracking-tight text-brand-deep">RelayOps</span>
         </div>
 
-        <div className="flex-1 overflow-auto px-3 py-4">
+        <div className="flex-1 overflow-auto px-3 py-3">
           <NavLinks />
         </div>
 
-        <div className="border-t px-4 py-3">
-          <p className="text-xs text-slate-400">v0.1.0 · development</p>
+        <div className="border-t border-border px-4 py-3">
+          <p className="text-xs text-muted-foreground">v0.1.0 · development</p>
         </div>
       </aside>
 
-      {/* Right column: topbar + scrollable content */}
+      {/* Main column: topbar + scrollable content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center border-b bg-white px-4">
+        <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4">
           <MobileNav />
-          <div className="flex flex-1 items-center justify-end gap-3">
+          <div className="flex flex-1 items-center justify-end gap-2">
             <NotificationsBell />
-            <span className="text-sm text-slate-500">{user.email}</span>
+            <div className="h-4 w-px bg-border mx-1" />
+            <span className="text-sm text-muted-foreground">{user.email}</span>
             <SignOutButton />
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-background">
           {children}
         </main>
       </div>
+
       <Toaster position="bottom-right" richColors />
     </div>
   )

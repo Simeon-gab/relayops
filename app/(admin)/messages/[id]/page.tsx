@@ -62,11 +62,11 @@ function ReceiptStatusBadge({ status }: { status: string }) {
     extracted: 'bg-blue-50 text-blue-700 border-blue-200',
     matched: 'bg-green-50 text-green-700 border-green-200',
     needs_review: 'bg-red-50 text-red-700 border-red-200',
-    rejected: 'bg-slate-100 text-slate-500',
+    rejected: 'bg-slate-100 text-muted-foreground',
   }
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${colours[status] ?? 'bg-slate-100 text-slate-600'}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${colours[status] ?? 'bg-slate-100 text-muted-foreground'}`}
     >
       {RECEIPT_STATUS_LABELS[status] ?? status}
     </span>
@@ -127,7 +127,7 @@ export default async function MessageDetailPage({ params }: Props) {
       {/* Back link */}
       <Link
         href="/messages"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-heading"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to messages
@@ -135,13 +135,13 @@ export default async function MessageDetailPage({ params }: Props) {
 
       {/* Header */}
       <div className="mb-8 mt-4">
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-heading">
           Message from{' '}
           <Link href={`/dealers/${message.dealer_id}`} className="hover:underline">
             {message.business_name}
           </Link>
         </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>{message.city}, {message.state}</span>
           <span>·</span>
           <Badge variant="outline" className="text-xs">
@@ -160,7 +160,7 @@ export default async function MessageDetailPage({ params }: Props) {
 
       {/* Original message */}
       <section className="mb-8">
-        <h2 className="mb-3 text-base font-semibold text-slate-800">Original message</h2>
+        <h2 className="mb-3 text-base font-semibold text-foreground">Original message</h2>
         <div className="rounded-xl border bg-white">
           {message.language && message.language !== 'en' && (
             <div className="border-b px-4 py-2">
@@ -169,7 +169,7 @@ export default async function MessageDetailPage({ params }: Props) {
               </Badge>
             </div>
           )}
-          <pre className="whitespace-pre-wrap break-words px-4 py-4 font-mono text-sm leading-relaxed text-slate-800">
+          <pre className="whitespace-pre-wrap break-words px-4 py-4 font-mono text-sm leading-relaxed text-foreground">
             {message.original_text}
           </pre>
         </div>
@@ -195,7 +195,7 @@ export default async function MessageDetailPage({ params }: Props) {
       {/* Attached receipts */}
       {receiptsWithData.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-base font-semibold text-slate-800">Attached receipt</h2>
+          <h2 className="mb-3 text-base font-semibold text-foreground">Attached receipt</h2>
           <div className="space-y-6">
             {receiptsWithData.map((r) => (
               <div key={r.id} className="overflow-hidden rounded-xl border bg-white">
@@ -214,7 +214,7 @@ export default async function MessageDetailPage({ params }: Props) {
                 <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
                   <div className="flex items-center gap-3">
                     <ReceiptStatusBadge status={r.status} />
-                    <span className="text-xs text-slate-500">{formatDateTime(r.created_at)}</span>
+                    <span className="text-xs text-muted-foreground">{formatDateTime(r.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {r.signedUrl && (
@@ -266,7 +266,7 @@ export default async function MessageDetailPage({ params }: Props) {
       {/* AI parse result */}
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-slate-800">AI parse result</h2>
+          <h2 className="text-base font-semibold text-foreground">AI parse result</h2>
           {!message.parse_result && (
             <ParseMessageButton messageId={message.id} />
           )}
@@ -279,18 +279,18 @@ export default async function MessageDetailPage({ params }: Props) {
           />
         ) : (
           <div className="rounded-xl border bg-slate-50 px-4 py-8 text-center">
-            <p className="text-sm text-slate-500">Message has not been parsed yet.</p>
-            <p className="mt-1 text-xs text-slate-400">Click "Parse message" above to extract intent and structured data.</p>
+            <p className="text-sm text-muted-foreground">Message has not been parsed yet.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Click "Parse message" above to extract intent and structured data.</p>
           </div>
         )}
       </section>
 
       {/* Recorded by */}
       <section>
-        <h2 className="mb-3 text-base font-semibold text-slate-800">Recorded by</h2>
+        <h2 className="mb-3 text-base font-semibold text-foreground">Recorded by</h2>
         <div className="rounded-xl border bg-white px-4 py-3">
-          <p className="text-sm text-slate-900">{message.recorded_by_email ?? 'Unknown'}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(message.created_at)}</p>
+          <p className="text-sm text-heading">{message.recorded_by_email ?? 'Unknown'}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{formatDateTime(message.created_at)}</p>
         </div>
       </section>
     </div>

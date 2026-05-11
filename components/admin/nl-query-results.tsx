@@ -53,7 +53,7 @@ export function NLQueryResults({ result }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-slate-50 text-left">
+                <tr className="border-b bg-subtle text-left">
                   {results.columns.map(col => (
                     <th
                       key={col}
@@ -66,7 +66,7 @@ export function NLQueryResults({ result }: Props) {
               </thead>
               <tbody className="divide-y">
                 {results.rows.map((row, i) => (
-                  <tr key={i} className="hover:bg-slate-50">
+                  <tr key={i} className="hover:bg-subtle">
                     {results.columns.map(col => (
                       <td
                         key={col}
@@ -82,7 +82,7 @@ export function NLQueryResults({ result }: Props) {
               </tbody>
             </table>
           </div>
-          <div className="border-t bg-slate-50 px-4 py-2 text-xs text-slate-500">
+          <div className="border-t bg-subtle px-4 py-2 text-xs text-slate-500">
             {results.rowCount >= 500
               ? '500 rows shown (result may be truncated)'
               : `${results.rowCount} row${results.rowCount !== 1 ? 's' : ''}`}

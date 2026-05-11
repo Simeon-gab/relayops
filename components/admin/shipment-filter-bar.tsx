@@ -76,7 +76,7 @@ export function ShipmentFilterBar({ counts }: Props) {
                 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors',
                 active
                   ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                  : 'border-border bg-white text-slate-600 hover:border-border hover:text-slate-900'
               )}
             >
               {label}

@@ -61,13 +61,13 @@ export default async function MessagesPage({ searchParams }: Props) {
       </div>
 
       {/* Direction tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg border bg-slate-50 p-1 w-fit">
+      <div className="mb-4 flex gap-1 rounded-lg border bg-subtle p-1 w-fit">
         <Link
           href="/messages"
           className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
             direction === 'inbound'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-card text-heading shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Inbound
@@ -76,8 +76,8 @@ export default async function MessagesPage({ searchParams }: Props) {
           href="/messages?dir=outbound"
           className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
             direction === 'outbound'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-card text-heading shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Outbound
@@ -94,14 +94,14 @@ export default async function MessagesPage({ searchParams }: Props) {
               <Link
                 key={label}
                 href={href}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
                   active
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    ? 'border-brand-deep bg-brand-deep text-white'
+                    : 'border-border bg-card text-muted-foreground hover:bg-subtle hover:text-foreground'
                 }`}
               >
                 {label}
-                <span className={`text-xs ${active ? 'text-slate-300' : 'text-slate-400'}`}>
+                <span className={`text-xs ${active ? 'text-white/60' : 'text-muted-foreground'}`}>
                   {count}
                 </span>
               </Link>

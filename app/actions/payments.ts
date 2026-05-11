@@ -150,7 +150,7 @@ export async function createPayment(
       description: input.shipment_id ? 'Linked to shipment' : 'Standalone payment',
       entityType: 'payment',
       entityId: paymentId,
-    }).catch(() => {})
+    }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
     return { success: true, paymentId }
   } catch (err) {

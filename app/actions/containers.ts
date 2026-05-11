@@ -5,6 +5,7 @@ import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
 import { callClaudeText } from '@/lib/ai/client'
 import { getAllocationSystemPrompt, getAllocationUserPrompt } from '@/lib/ai/prompts/allocation-suggestion'
+import { notifyAllAdmins } from '@/lib/notifications'
 
 const LAGOS_WAREHOUSE_ID = '00000000-0000-0000-0001-000000000001'
 const KANO_WAREHOUSE_ID = '00000000-0000-0000-0001-000000000002'
@@ -138,14 +139,13 @@ export async function createContainer(
 
     const totalItems = input.items.reduce((s, i) => s + i.quantity, 0)
     const skuCount = input.items.length
-    const { notifyAllAdmins } = await import('@/lib/notifications')
     notifyAllAdmins({
       eventType: 'allocation_pending',
       title: `New container ${input.container_number.trim()} arrived`,
       description: `${totalItems} units across ${skuCount} SKU(s) awaiting allocation`,
       entityType: 'container',
       entityId: containerId,
-    }).catch(() => {})
+    }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
     return { success: true, containerId }
   } catch (err) {

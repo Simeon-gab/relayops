@@ -43,7 +43,7 @@ export function OutboundMessagesTable({ messages }: Props) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b bg-slate-50 text-left">
+        <tr className="border-b bg-subtle text-left">
           <th className="px-4 py-3 font-medium text-slate-600">Date</th>
           <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
           <th className="px-4 py-3 font-medium text-slate-600">Channel</th>
@@ -54,7 +54,7 @@ export function OutboundMessagesTable({ messages }: Props) {
       </thead>
       <tbody className="divide-y">
         {messages.map((msg) => (
-          <tr key={msg.id} className="hover:bg-slate-50">
+          <tr key={msg.id} className="hover:bg-subtle">
             <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
               {formatDateTime(msg.created_at)}
             </td>

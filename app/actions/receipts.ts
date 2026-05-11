@@ -10,6 +10,7 @@ import {
   getReceiptExtractionUserPrompt,
 } from '@/lib/ai/prompts/receipt-extraction'
 import type { ExtractionResult, CreatePaymentFromReceiptInput } from '@/types/receipts'
+import { notifyAllAdmins } from '@/lib/notifications'
 
 async function getAdminUser() {
   const db = await createClient()
@@ -248,7 +249,6 @@ export async function extractReceipt(receiptId: string): Promise<ExtractionResul
   revalidatePath('/dashboard')
 
   if (newStatus === 'extracted' || newStatus === 'needs_review') {
-    const { notifyAllAdmins } = await import('@/lib/notifications')
     notifyAllAdmins({
       eventType: 'receipt_extracted',
       title: e.amount_naira
@@ -257,7 +257,7 @@ export async function extractReceipt(receiptId: string): Promise<ExtractionResul
       description: confidence < 0.8 ? 'Needs review — low confidence' : 'High confidence extraction',
       entityType: 'receipt',
       entityId: receiptId,
-    }).catch(() => {})
+    }).catch((err) => console.error('[notifications] broadcast failed:', err))
   }
 
   return { success: true, extractionId, status: newStatus, confidence }

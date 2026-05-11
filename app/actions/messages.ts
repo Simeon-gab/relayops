@@ -9,6 +9,7 @@ import { callClaudeText } from '@/lib/ai/client'
 import { getMessageParsingSystemPrompt, getMessageParsingUserPrompt } from '@/lib/ai/prompts/message-parsing'
 import { getDispatchDraftingSystemPrompt, getDispatchDraftingUserPrompt, type DispatchDraftContext } from '@/lib/ai/prompts/dispatch-drafting'
 import { getDealerRecentOrders } from '@/lib/db/messages'
+import { notifyAllAdmins } from '@/lib/notifications'
 
 const VALID_CHANNELS = ['dealer_portal', 'whatsapp', 'sms'] as const
 type Channel = typeof VALID_CHANNELS[number]
@@ -147,14 +148,13 @@ export async function createInboundMessage(
       .eq('id', input.dealer_id)
       .single()
 
-    const { notifyAllAdmins } = await import('@/lib/notifications')
     notifyAllAdmins({
       eventType: 'message_received',
       title: `New message from ${dealerInfo?.business_name ?? 'dealer'}`,
       description: input.original_text.slice(0, 80),
       entityType: 'message',
       entityId: messageId,
-    }).catch(() => {})
+    }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
     return { success: true, messageId, receiptId: receiptId ?? undefined }
   } catch (err) {
@@ -380,14 +380,13 @@ export async function convertParseToOrder(
     .eq('id', dealerId)
     .single()
 
-  const { notifyAllAdmins: notifyAdmins } = await import('@/lib/notifications')
-  notifyAdmins({
+  notifyAllAdmins({
     eventType: 'order_created',
     title: `[AI parsed] New order from ${dealerNameRow?.business_name ?? 'dealer'}`,
     description: `${items.length} item(s) extracted from message`,
     entityType: 'order',
     entityId: orderId,
-  }).catch(() => {})
+  }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
   return { success: true, orderId }
 }

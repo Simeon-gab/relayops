@@ -48,7 +48,7 @@ export default async function PaymentDetailPage({ params }: Props) {
       {/* Back link */}
       <Link
         href="/payments"
-        className="mb-6 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+        className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-heading"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to payments
@@ -57,13 +57,13 @@ export default async function PaymentDetailPage({ params }: Props) {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-heading">
           Payment of {formatNairaCurrency(payment.amount_naira)}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           <Link
             href={`/dealers/${payment.dealer_id}`}
-            className="font-medium text-slate-700 hover:underline"
+            className="font-medium text-foreground hover:underline"
           >
             {payment.business_name}
           </Link>
@@ -71,7 +71,7 @@ export default async function PaymentDetailPage({ params }: Props) {
           {' '}·{' '}{formatDate(payment.payment_date)}
           {' '}·{' '}{payment.payment_method ? (METHOD_LABELS[payment.payment_method] ?? payment.payment_method) : 'Unknown method'}
           {payment.payment_reference && (
-            <span className="ml-1 font-mono text-xs text-slate-400">
+            <span className="ml-1 font-mono text-xs text-muted-foreground">
               ({payment.payment_reference})
             </span>
           )}
@@ -96,7 +96,7 @@ export default async function PaymentDetailPage({ params }: Props) {
 
       {/* Details grid */}
       <section className="mb-8">
-        <h2 className="mb-3 text-base font-semibold text-slate-800">Details</h2>
+        <h2 className="mb-3 text-base font-semibold text-foreground">Details</h2>
         <div className="overflow-hidden rounded-xl border bg-white">
           <dl className="divide-y">
             {[
@@ -115,7 +115,7 @@ export default async function PaymentDetailPage({ params }: Props) {
                 value: (
                   <Link
                     href={`/dealers/${payment.dealer_id}`}
-                    className="text-slate-700 hover:underline"
+                    className="text-foreground hover:underline"
                   >
                     {payment.business_name}, {payment.city}
                   </Link>
@@ -123,10 +123,10 @@ export default async function PaymentDetailPage({ params }: Props) {
               },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-baseline gap-4 px-4 py-3">
-                <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">
+                <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {label}
                 </dt>
-                <dd className="text-sm text-slate-900">{value}</dd>
+                <dd className="text-sm text-heading">{value}</dd>
               </div>
             ))}
           </dl>
@@ -136,8 +136,8 @@ export default async function PaymentDetailPage({ params }: Props) {
       {/* Notes */}
       {payment.notes && (
         <section className="mb-8">
-          <h2 className="mb-3 text-base font-semibold text-slate-800">Notes</h2>
-          <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-600 whitespace-pre-line">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Notes</h2>
+          <div className="rounded-xl border bg-white px-4 py-3 text-sm text-muted-foreground whitespace-pre-line">
             {payment.notes}
           </div>
         </section>
@@ -146,15 +146,15 @@ export default async function PaymentDetailPage({ params }: Props) {
       {/* Linked shipment */}
       {payment.shipment_id && (
         <section className="mb-8">
-          <h2 className="mb-3 text-base font-semibold text-slate-800">Linked shipment</h2>
+          <h2 className="mb-3 text-base font-semibold text-foreground">Linked shipment</h2>
           <div className="overflow-hidden rounded-xl border bg-white">
             <dl className="divide-y">
               <div className="flex items-baseline gap-4 px-4 py-3">
-                <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Shipment</dt>
+                <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Shipment</dt>
                 <dd className="text-sm">
                   <Link
                     href={`/shipments/${payment.shipment_id}`}
-                    className="font-mono text-slate-700 hover:underline"
+                    className="font-mono text-foreground hover:underline"
                   >
                     …{shortId(payment.shipment_id)}
                   </Link>
@@ -162,26 +162,26 @@ export default async function PaymentDetailPage({ params }: Props) {
               </div>
               {payment.shipment_status && (
                 <div className="flex items-baseline gap-4 px-4 py-3">
-                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Status</dt>
+                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</dt>
                   <dd><StatusBadge status={payment.shipment_status} /></dd>
                 </div>
               )}
               {payment.shipment_dispatched_at && (
                 <div className="flex items-baseline gap-4 px-4 py-3">
-                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Dispatched</dt>
-                  <dd className="text-sm text-slate-900">{formatDate(payment.shipment_dispatched_at)}</dd>
+                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Dispatched</dt>
+                  <dd className="text-sm text-heading">{formatDate(payment.shipment_dispatched_at)}</dd>
                 </div>
               )}
               {payment.shipment_total != null && (
                 <div className="flex items-baseline gap-4 px-4 py-3">
-                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Total</dt>
-                  <dd className="text-sm tabular-nums text-slate-900">{formatNairaCurrency(payment.shipment_total)}</dd>
+                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Total</dt>
+                  <dd className="text-sm tabular-nums text-heading">{formatNairaCurrency(payment.shipment_total)}</dd>
                 </div>
               )}
               {payment.shipment_paid != null && (
                 <div className="flex items-baseline gap-4 px-4 py-3">
-                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">Total paid</dt>
-                  <dd className="text-sm tabular-nums text-slate-900">{formatNairaCurrency(payment.shipment_paid)}</dd>
+                  <dt className="w-32 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Total paid</dt>
+                  <dd className="text-sm tabular-nums text-heading">{formatNairaCurrency(payment.shipment_paid)}</dd>
                 </div>
               )}
             </dl>
@@ -191,10 +191,10 @@ export default async function PaymentDetailPage({ params }: Props) {
 
       {/* Recorded by */}
       <section>
-        <h2 className="mb-3 text-base font-semibold text-slate-800">Recorded by</h2>
+        <h2 className="mb-3 text-base font-semibold text-foreground">Recorded by</h2>
         <div className="rounded-xl border bg-white px-4 py-3">
-          <p className="text-sm text-slate-900">{payment.recorded_by_email}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(payment.recorded_at)}</p>
+          <p className="text-sm text-heading">{payment.recorded_by_email}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{formatDateTime(payment.recorded_at)}</p>
         </div>
       </section>
     </div>

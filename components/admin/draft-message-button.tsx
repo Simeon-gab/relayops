@@ -146,10 +146,10 @@ export function DraftMessageButton({
             {/* Header */}
             <div className="flex items-center justify-between border-b px-5 py-4">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-slate-500" />
-                <h2 className="text-sm font-semibold text-slate-900">Draft outbound message</h2>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-foreground">Draft outbound message</h2>
                 {draft && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                     {langLabel}
                   </span>
                 )}
@@ -166,7 +166,7 @@ export function DraftMessageButton({
                   <div>
                     <p className="mb-3 text-sm text-slate-600">
                       Composing a message to{' '}
-                      <span className="font-medium text-slate-900">{draftInput.dealerName}</span>
+                      <span className="font-medium text-foreground">{draftInput.dealerName}</span>
                       {' '}({draftInput.dealerCity}) in{' '}
                       <span className="font-medium">{LANG_LABELS[draftInput.preferredLanguage] ?? draftInput.preferredLanguage}</span>.
                     </p>
@@ -176,7 +176,7 @@ export function DraftMessageButton({
                     <textarea
                       rows={4}
                       placeholder="e.g. Inform dealer that their container was delayed at customs and is expected to arrive next week"
-                      className="w-full rounded-lg border bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                      className="w-full rounded-lg border bg-subtle px-3 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-ring"
                       value={customInstruction}
                       onChange={(e) => setCustomInstruction(e.target.value)}
                       autoFocus
@@ -187,7 +187,7 @@ export function DraftMessageButton({
 
               {/* Generating spinner */}
               {drafting && (
-                <div className="flex items-center justify-center gap-3 py-12 text-slate-500">
+                <div className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span className="text-sm">Drafting message…</span>
                 </div>
@@ -202,7 +202,7 @@ export function DraftMessageButton({
                     </label>
                     <textarea
                       rows={5}
-                      className="w-full rounded-lg border bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                      className="w-full rounded-lg border bg-subtle px-3 py-2.5 text-sm leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       value={editedNative}
                       onChange={(e) => setEditedNative(e.target.value)}
                     />
@@ -237,7 +237,7 @@ export function DraftMessageButton({
                           className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                             selectedChannel === ch
                               ? 'bg-slate-900 text-white border-slate-900'
-                              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                              : 'border-slate-200 text-slate-600 hover:bg-subtle'
                           }`}
                         >
                           {ch === 'dealer_portal' ? 'Portal' : ch === 'whatsapp' ? 'WhatsApp' : 'SMS'}

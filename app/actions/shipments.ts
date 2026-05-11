@@ -202,7 +202,7 @@ export async function createShipmentFromOrder(
       description: `${input.items.length} items · pending dispatch`,
       entityType: 'shipment',
       entityId: shipmentId,
-    }).catch(() => {})
+    }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
     return { success: true, shipmentId }
   } catch (err) {
@@ -431,14 +431,14 @@ export async function updateShipmentStatus(
           : undefined,
         entityType: 'shipment',
         entityId: shipmentId,
-      }).catch(() => {})
+      }).catch((err) => console.error('[notifications] broadcast failed:', err))
     } else if (newStatus === 'dispatched') {
       notifyAllAdmins({
         eventType: 'shipment_dispatched',
         title: 'Shipment dispatched',
         entityType: 'shipment',
         entityId: shipmentId,
-      }).catch(() => {})
+      }).catch((err) => console.error('[notifications] broadcast failed:', err))
     }
 
     return { success: true, ordersAutoUpdated }

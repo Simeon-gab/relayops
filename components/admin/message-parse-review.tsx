@@ -177,7 +177,7 @@ export function MessageParseReview({ parseResult, messageId, availableProducts }
 
   if (isRejected) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="rounded-lg border border-border bg-slate-50 px-4 py-3">
         <p className="text-sm text-slate-500">Parse dismissed — this message is being handled manually.</p>
       </div>
     )

@@ -146,7 +146,7 @@ export async function createDealerOrder(
       description: `${input.items.length} item(s) requested`,
       entityType: 'order',
       entityId: orderId,
-    }).catch(() => {})
+    }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
     return { success: true, orderId, dealerId: input.dealer_id }
   } catch (err) {

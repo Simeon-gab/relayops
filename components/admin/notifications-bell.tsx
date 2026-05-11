@@ -23,7 +23,6 @@ export function NotificationsBell() {
     startTransition(async () => {
       const data = await getRecentNotificationsAction()
       setNotifications(data)
-      setUnread(data.filter((n) => !n.read_at).length)
     })
   }
 
@@ -34,7 +33,10 @@ export function NotificationsBell() {
   }, [])
 
   useEffect(() => {
-    if (open) fetchNotifications()
+    if (open) {
+      fetchNotifications()
+      fetchUnread()
+    }
   }, [open])
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function NotificationsBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-subtle hover:text-foreground"
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
@@ -63,7 +65,7 @@ export function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-xl border bg-white shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
           <NotificationsDropdown
             notifications={notifications}
             hasUnread={unread > 0}

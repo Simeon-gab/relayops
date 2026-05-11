@@ -17,16 +17,16 @@ import {
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { label: 'Dashboard',  href: '/dashboard',      icon: LayoutDashboard },
-  { label: 'Containers', href: '/containers',      icon: Container },
+  { label: 'Dashboard',  href: '/dashboard',     icon: LayoutDashboard },
+  { label: 'Containers', href: '/containers',     icon: Container },
   { label: 'Orders',     href: '/dealer-orders',  icon: ClipboardList },
-  { label: 'Shipments',  href: '/shipments',       icon: Truck },
-  { label: 'Warehouses', href: '/warehouses',  icon: Warehouse },
-  { label: 'Products',   href: '/products',    icon: Bike },
-  { label: 'Dealers',    href: '/dealers',     icon: Users },
-  { label: 'Payments',   href: '/payments',    icon: Receipt },
-  { label: 'Messages',   href: '/messages',    icon: MessageSquare },
-  { label: 'Queries',    href: '/queries',     icon: Search },
+  { label: 'Shipments',  href: '/shipments',      icon: Truck },
+  { label: 'Warehouses', href: '/warehouses',     icon: Warehouse },
+  { label: 'Products',   href: '/products',       icon: Bike },
+  { label: 'Dealers',    href: '/dealers',        icon: Users },
+  { label: 'Payments',   href: '/payments',       icon: Receipt },
+  { label: 'Messages',   href: '/messages',       icon: MessageSquare },
+  { label: 'Queries',    href: '/queries',        icon: Search },
 ]
 
 interface NavLinksProps {
@@ -46,10 +46,10 @@ export function NavLinks({ onNavigate }: NavLinksProps) {
             href={href}
             onClick={onNavigate}
             className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
               isActive
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-brand-soft text-brand-deep'
+                : 'text-muted-foreground hover:bg-subtle hover:text-foreground'
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />

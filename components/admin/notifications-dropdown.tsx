@@ -89,7 +89,6 @@ export function NotificationsDropdown({ notifications, hasUnread, onClose }: Pro
 
   return (
     <div className="flex max-h-[480px] flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between border-b px-4 py-3">
         <span className="text-sm font-semibold text-slate-900">Notifications</span>
         {hasUnread && (
@@ -103,7 +102,6 @@ export function NotificationsDropdown({ notifications, hasUnread, onClose }: Pro
         )}
       </div>
 
-      {/* List */}
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -116,7 +114,7 @@ export function NotificationsDropdown({ notifications, hasUnread, onClose }: Pro
               <li
                 key={n.id}
                 onClick={() => handleClick(n)}
-                className={`flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-slate-50 ${
+                className={`flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-subtle ${
                   !n.read_at ? 'bg-blue-50/50' : ''
                 }`}
               >

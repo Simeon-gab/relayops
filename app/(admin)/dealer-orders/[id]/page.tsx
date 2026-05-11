@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { getDealerOrder, getOrderLinkedShipments } from '@/lib/db/dealer-orders'
-import { getWarehouses } from '@/lib/db/warehouses'
-import { getWarehouseStockForProducts } from '@/lib/db/warehouses'
+import { getWarehouses, getAllWarehouseStockForProducts } from '@/lib/db/warehouses'
+import { formatNairaCurrency } from '@/lib/utils/format'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { OrderStatusActions } from '@/components/admin/order-status-actions'
 import { OrderStatusHistory } from '@/components/admin/order-status-history'
@@ -21,9 +21,8 @@ function formatDate(iso: string): string {
   })
 }
 
-function formatNaira(n: number | null): string {
-  if (n == null) return '—'
-  return `₦${n.toLocaleString()}`
+function fmt(n: number | null): string {
+  return n == null ? '—' : formatNairaCurrency(n)
 }
 
 function lineStatus(item: DealerOrderItemDetail): string {
@@ -42,13 +41,10 @@ export default async function DealerOrderDetailPage({ params }: Props) {
   if (!order) notFound()
 
   const productIds = order.items.map((i) => i.product_id)
-  const stockEntries = await Promise.all(
-    warehouses.map(async (w) => {
-      const stockMap = await getWarehouseStockForProducts(w.id, productIds)
-      return [w.id, Object.fromEntries(stockMap)] as [string, Record<string, number>]
-    })
+  const stockByWarehouse = await getAllWarehouseStockForProducts(
+    warehouses.map((w) => w.id),
+    productIds,
   )
-  const stockByWarehouse: Record<string, Record<string, number>> = Object.fromEntries(stockEntries)
 
   const totalQty = order.items.reduce((s, i) => s + i.quantity_requested, 0)
   const totalFulfilled = order.items.reduce((s, i) => s + i.quantity_fulfilled, 0)
@@ -59,7 +55,7 @@ export default async function DealerOrderDetailPage({ params }: Props) {
       {/* Back link */}
       <Link
         href="/dealer-orders"
-        className="mb-6 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+        className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-heading"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to orders
@@ -69,10 +65,10 @@ export default async function DealerOrderDetailPage({ params }: Props) {
       <div className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-heading">
               Order from {order.business_name}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               {order.city}, {order.state} &middot; {formatDate(order.requested_at)}
             </p>
           </div>
@@ -110,47 +106,47 @@ export default async function DealerOrderDetailPage({ params }: Props) {
       {/* Stats row */}
       <div className="mb-8 grid grid-cols-3 gap-4 sm:grid-cols-3 lg:w-2/3">
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Total qty</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{totalQty}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total qty</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-heading">{totalQty}</p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Fulfilled</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fulfilled</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-green-700">{totalFulfilled}</p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Remaining</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Remaining</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-amber-700">{totalRemaining}</p>
         </div>
       </div>
 
       {/* Items section */}
       <section className="mb-8">
-        <h2 className="mb-3 text-base font-semibold text-slate-800">Items</h2>
+        <h2 className="mb-3 text-base font-semibold text-foreground">Items</h2>
         <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-slate-50 text-left">
-                <th className="px-4 py-3 font-medium text-slate-600">SKU</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Product</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Color</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-600">Qty requested</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-600">Qty fulfilled</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Status</th>
+              <tr className="border-b bg-subtle text-left">
+                <th className="px-4 py-3 font-medium text-muted-foreground">SKU</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">Product</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">Color</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Qty requested</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Qty fulfilled</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {order.items.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.sku_code}</td>
+                <tr key={item.id} className="hover:bg-subtle">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.sku_code}</td>
                   <td className="px-4 py-3">
-                    <span className="font-medium text-slate-900">{item.display_name}</span>
-                    <span className="ml-1.5 text-xs text-slate-400 capitalize">{item.category}</span>
+                    <span className="font-medium text-heading">{item.display_name}</span>
+                    <span className="ml-1.5 text-xs text-muted-foreground capitalize">{item.category}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{item.color ?? '—'}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-900">
+                  <td className="px-4 py-3 text-muted-foreground">{item.color ?? '—'}</td>
+                  <td className="px-4 py-3 text-right tabular-nums font-medium text-heading">
                     {item.quantity_requested}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-900">
+                  <td className="px-4 py-3 text-right tabular-nums font-medium text-heading">
                     {item.quantity_fulfilled}
                   </td>
                   <td className="px-4 py-3">
@@ -166,8 +162,8 @@ export default async function DealerOrderDetailPage({ params }: Props) {
       {/* Notes section */}
       {order.notes && (
         <section className="mb-8">
-          <h2 className="mb-3 text-base font-semibold text-slate-800">Notes</h2>
-          <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-600 whitespace-pre-line">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Notes</h2>
+          <div className="rounded-xl border bg-white px-4 py-3 text-sm text-muted-foreground whitespace-pre-line">
             {order.notes}
           </div>
         </section>
@@ -178,9 +174,9 @@ export default async function DealerOrderDetailPage({ params }: Props) {
 
       {/* Linked shipments */}
       <section className="mt-8">
-        <h2 className="mb-3 text-base font-semibold text-slate-800">Linked shipments</h2>
+        <h2 className="mb-3 text-base font-semibold text-foreground">Linked shipments</h2>
         {linkedShipments.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-white px-4 py-8 text-center text-sm text-slate-400">
+          <div className="rounded-xl border border-dashed bg-white px-4 py-8 text-center text-sm text-muted-foreground">
             No shipments yet.{' '}
             {(order.status === 'pending' || order.status === 'partially_fulfilled') && totalRemaining > 0
               ? "Click 'Create shipment' above to start dispatching."
@@ -190,17 +186,17 @@ export default async function DealerOrderDetailPage({ params }: Props) {
           <div className="overflow-hidden rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-slate-50 text-left">
-                  <th className="px-4 py-3 font-medium text-slate-600">Shipment ID</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-600">Total</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">Dispatched</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">Delivered</th>
+                <tr className="border-b bg-subtle text-left">
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Shipment ID</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Dispatched</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Delivered</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {linkedShipments.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50">
+                  <tr key={s.id} className="hover:bg-subtle">
                     <td className="px-4 py-3">
                       <Link
                         href={`/shipments/${s.id}`}
@@ -212,13 +208,13 @@ export default async function DealerOrderDetailPage({ params }: Props) {
                     <td className="px-4 py-3">
                       <StatusBadge status={s.status} />
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-700">
-                      {formatNaira(s.total_amount_naira)}
+                    <td className="px-4 py-3 text-right tabular-nums text-foreground">
+                      {fmt(s.total_amount_naira)}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
                       {s.dispatched_at ? formatDate(s.dispatched_at) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
                       {s.delivered_at ? formatDate(s.delivered_at) : '—'}
                     </td>
                   </tr>

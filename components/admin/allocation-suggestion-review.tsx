@@ -118,7 +118,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
       </div>
 
       {/* Reasoning */}
-      <div className="rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-600">
+      <div className="rounded-xl border bg-subtle px-4 py-3 text-sm text-slate-600">
         {suggestion.overall_reasoning}
       </div>
 
@@ -145,7 +145,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
           <div className="space-y-3">
             {allocations.map((alloc, ai) => (
               <div key={alloc.order_id} className="overflow-hidden rounded-xl border bg-white">
-                <div className="flex items-center justify-between gap-4 border-b bg-slate-50 px-4 py-2.5">
+                <div className="flex items-center justify-between gap-4 border-b bg-subtle px-4 py-2.5">
                   <div className="flex items-center gap-3">
                     <div>
                       <span className="text-sm font-semibold text-slate-900">{alloc.dealer_name}</span>
@@ -207,7 +207,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
           <div className="overflow-hidden rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-slate-50 text-left">
+                <tr className="border-b bg-subtle text-left">
                   <th className="px-4 py-3 font-medium text-slate-600">SKU</th>
                   <th className="px-4 py-3 font-medium text-slate-600">Product</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-600">Quantity</th>
@@ -246,7 +246,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
           <div className="overflow-hidden rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-slate-50 text-left">
+                <tr className="border-b bg-subtle text-left">
                   <th className="px-4 py-3 font-medium text-slate-600">SKU</th>
                   <th className="px-4 py-3 font-medium text-slate-600">Product</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-600">Qty</th>
@@ -255,7 +255,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
               </thead>
               <tbody className="divide-y">
                 {suggestion.remaining_in_lagos.map((r) => (
-                  <tr key={r.sku_code} className="hover:bg-slate-50">
+                  <tr key={r.sku_code} className="hover:bg-subtle">
                     <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{r.sku_code}</td>
                     <td className="px-4 py-2.5 text-slate-800">{r.display_name}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums font-medium text-slate-900">{r.quantity}</td>

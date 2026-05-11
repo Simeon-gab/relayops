@@ -63,7 +63,7 @@ export function MessagesTable({ messages }: Props) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b bg-slate-50 text-left">
+        <tr className="border-b bg-subtle text-left">
           <th className="px-4 py-3 font-medium text-slate-600">Date</th>
           <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
           <th className="px-4 py-3 font-medium text-slate-600">Channel</th>
@@ -77,7 +77,7 @@ export function MessagesTable({ messages }: Props) {
         {messages.map((msg) => (
           <tr
             key={msg.id}
-            className="cursor-pointer hover:bg-slate-50"
+            className="cursor-pointer hover:bg-subtle"
             onClick={() => router.push(`/messages/${msg.id}`)}
           >
             <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">

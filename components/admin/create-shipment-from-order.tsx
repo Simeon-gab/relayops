@@ -72,7 +72,7 @@ export function CreateShipmentFromOrder({ order, warehouses, stockByWarehouse }:
         unit_price_naira: i.unit_price_naira,
       }))
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init rows on open only; unfulfillableItems changes don't reset quantities mid-dialog
   }, [open])
 
   function setQty(index: number, value: number) {
@@ -160,7 +160,7 @@ export function CreateShipmentFromOrder({ order, warehouses, stockByWarehouse }:
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-slate-50 text-left">
+                  <tr className="border-b bg-subtle text-left">
                     <th className="px-3 py-2 font-medium text-slate-600">SKU</th>
                     <th className="px-3 py-2 font-medium text-slate-600">Product</th>
                     <th className="px-3 py-2 text-right font-medium text-slate-600">Remaining</th>
@@ -173,7 +173,7 @@ export function CreateShipmentFromOrder({ order, warehouses, stockByWarehouse }:
                     const avail = stock[row.product_id] ?? 0
                     const insufficient = row.shipQty > 0 && avail < row.shipQty
                     return (
-                      <tr key={row.dealer_order_item_id} className="hover:bg-slate-50">
+                      <tr key={row.dealer_order_item_id} className="hover:bg-subtle">
                         <td className="px-3 py-2 font-mono text-xs text-slate-500">{row.sku_code}</td>
                         <td className="px-3 py-2">
                           <span className="font-medium text-slate-900">{row.display_name}</span>

@@ -96,7 +96,7 @@ export function FileUpload({ value, onChange, accept, disabled, className }: Fil
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-white p-6 text-center transition-colors hover:border-slate-300 hover:bg-slate-50',
+        'relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-white p-6 text-center transition-colors hover:border-border hover:bg-slate-50',
         isDragOver && 'border-blue-400 bg-blue-50',
         disabled && 'pointer-events-none opacity-50',
         className
