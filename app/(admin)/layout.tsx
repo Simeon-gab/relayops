@@ -20,6 +20,24 @@ export default async function AdminLayout({
     redirect('/sign-in')
   }
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role, display_name')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.role) {
+    redirect('/sign-in?error=no_role')
+  }
+
+  if (profile.role === 'dealer') {
+    redirect('/portal')
+  }
+
+  if (profile.role !== 'admin') {
+    redirect('/sign-in?error=invalid_role')
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}

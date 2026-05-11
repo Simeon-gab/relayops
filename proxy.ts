@@ -1,10 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+
+const ADMIN_ONLY_PREFIXES = [
+  '/dashboard',
+  '/containers',
+  '/orders',
+  '/shipments',
+  '/warehouses',
+  '/products',
+  '/dealers',
+  '/payments',
+  '/messages',
+  '/queries',
+]
 
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({
-    request,
-  })
+  const { pathname } = request.nextUrl
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,53 +27,75 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({
-            request,
-          })
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            request.cookies.set(name, value, options)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
           )
         },
       },
     }
   )
 
-  // Refresh session if expired
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedPaths = [
-    '/dashboard',
-    '/containers',
-    '/dealer-orders',
-    '/shipments',
-    '/dealers',
-    '/products',
-    '/warehouses',
-    '/payments',
-    '/messages',
-    '/queries',
-    '/portal',
-  ]
-  const isProtectedPath = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  )
-
-  if (isProtectedPath && !user) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/sign-in'
-    return NextResponse.redirect(redirectUrl)
+  // Unauthenticated: only /sign-in is allowed
+  if (!user) {
+    if (pathname === '/sign-in') return supabaseResponse
+    return NextResponse.redirect(new URL('/sign-in', request.url))
   }
 
-  return response
+  // Authenticated: fetch role from public.users
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const role = profile?.role
+
+  // No role mapped — sign out and bounce with error param
+  if (!role) {
+    await supabase.auth.signOut()
+    const url = new URL('/sign-in', request.url)
+    url.searchParams.set('error', 'no_role')
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.headers.getSetCookie().forEach((cookie) => {
+      redirectResponse.headers.append('Set-Cookie', cookie)
+    })
+    return redirectResponse
+  }
+
+  // Admin trying to reach dealer portal → send back to admin dashboard
+  if (role === 'admin' && pathname.startsWith('/portal')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Dealer trying to reach any admin-only path → send to dealer portal
+  if (role === 'dealer') {
+    const isAdminPath = ADMIN_ONLY_PREFIXES.some((prefix) =>
+      pathname.startsWith(prefix)
+    )
+    if (isAdminPath) {
+      return NextResponse.redirect(new URL('/portal', request.url))
+    }
+  }
+
+  // Authenticated user landing on sign-in page → redirect to their home
+  if (pathname === '/sign-in') {
+    const home = role === 'admin' ? '/dashboard' : '/portal'
+    return NextResponse.redirect(new URL(home, request.url))
+  }
+
+  return supabaseResponse
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

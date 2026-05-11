@@ -15,10 +15,26 @@ export async function signIn(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     return { error: error.message }
+  }
+
+  const userId = data.user.id
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .single()
+
+  if (profileError || !profile?.role) {
+    await supabase.auth.signOut()
+    redirect('/sign-in?error=no_role')
+  }
+
+  if (profile.role === 'dealer') {
+    redirect('/portal')
   }
 
   redirect('/dashboard')
