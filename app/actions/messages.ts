@@ -75,7 +75,7 @@ export async function createInboundMessage(
     const file = input.receipt_file
     const uuid = randomUUID()
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    receiptStoragePath = `receipts/${input.dealer_id}/${uuid}-${safeName}`
+    receiptStoragePath = `${input.dealer_id}/${uuid}-${safeName}`
     receiptFileType = file.type || 'application/octet-stream'
 
     const adminDb = createAdminClient()
