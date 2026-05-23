@@ -26,6 +26,8 @@ export async function extractReceipt(receiptId: string): Promise<ExtractionResul
   if (result.success) {
     if (result.messageId) revalidatePath(`/messages/${result.messageId}`)
     revalidatePath('/messages')
+    revalidatePath('/receipts')
+    revalidatePath(`/receipts/${receiptId}`)
     revalidatePath('/dashboard')
     return {
       success: true,
@@ -124,6 +126,8 @@ export async function createPaymentFromReceipt(
 
   if (rec.message_id) revalidatePath(`/messages/${rec.message_id}`)
   revalidatePath('/messages')
+  revalidatePath('/receipts')
+  revalidatePath(`/receipts/${receiptId}`)
   revalidatePath('/dashboard')
   if (values.shipment_id) revalidatePath(`/shipments/${values.shipment_id}`)
 

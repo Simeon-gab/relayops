@@ -11,6 +11,7 @@ import {
   Package,
   CheckCircle,
   Bell,
+  Receipt,
 } from 'lucide-react'
 import { markNotificationRead, markAllNotificationsRead } from '@/app/actions/notifications'
 
@@ -31,7 +32,7 @@ function entityPath(entityType: string | null, entityId: string | null): string 
     case 'order': return `/dealer-orders/${entityId}`
     case 'payment': return `/payments/${entityId}`
     case 'shipment': return `/shipments/${entityId}`
-    case 'receipt': return `/messages`
+    case 'receipt': return entityId ? `/receipts/${entityId}` : '/receipts'
     case 'message': return `/messages/${entityId}`
     case 'container': return `/containers/${entityId}`
     default: return null
@@ -49,6 +50,7 @@ function EventIcon({ type }: { type: string }) {
     case 'message_received': return <MessageSquare className={`${cls} text-sky-500`} />
     case 'allocation_pending': return <Package className={`${cls} text-orange-500`} />
     case 'order_auto_fulfilled': return <CheckCircle className={`${cls} text-green-600`} />
+    case 'dealer_receipt_uploaded': return <Receipt className={`${cls} text-violet-500`} />
     default: return <Bell className={`${cls} text-slate-400`} />
   }
 }

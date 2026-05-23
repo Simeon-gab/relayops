@@ -11,6 +11,7 @@ import {
   Bike,
   Users,
   Receipt,
+  FileText,
   MessageSquare,
   Search,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const navItems = [
   { label: 'Products',   href: '/products',       icon: Bike },
   { label: 'Dealers',    href: '/dealers',        icon: Users },
   { label: 'Payments',   href: '/payments',       icon: Receipt },
+  { label: 'Receipts',   href: '/receipts',       icon: FileText },
   { label: 'Messages',   href: '/messages',       icon: MessageSquare },
   { label: 'Queries',    href: '/queries',        icon: Search },
 ]
