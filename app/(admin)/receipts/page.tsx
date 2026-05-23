@@ -138,7 +138,6 @@ export default async function ReceiptsPage({ searchParams }: Props) {
                       <Link
                         href={`/dealer-orders/${r.linked_order_id}`}
                         className="text-blue-600 hover:underline"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         {r.linked_order_id.slice(0, 8)}…
                       </Link>

@@ -195,7 +195,7 @@ export default async function ReceiptDetailPage({ params }: Props) {
           {receipt.status === 'pending_extraction' && (
             <div className="px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">
-                AI extraction has not run yet. Click "Extract" above to process this receipt.
+                AI extraction has not run yet. Click &quot;Extract&quot; above to process this receipt.
               </p>
             </div>
           )}
