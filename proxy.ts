@@ -96,6 +96,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Auth-guard everything EXCEPT: API, Next internals, the favicon, image
+    // files, and the public PWA assets (manifest, service worker, offline
+    // fallback, and the generated app icons). The PWA assets must stay public
+    // so browsers can fetch them during install without a session cookie.
+    '/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|sw\\.js|offline|icon|apple-icon|pwa-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
