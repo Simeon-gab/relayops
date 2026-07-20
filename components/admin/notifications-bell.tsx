@@ -65,7 +65,7 @@ export function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-1 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-xl border border-border bg-card shadow-lg sm:w-80">
           <NotificationsDropdown
             notifications={notifications}
             hasUnread={unread > 0}

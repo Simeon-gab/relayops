@@ -45,14 +45,14 @@ export default async function MessagesPage({ searchParams }: Props) {
   return (
     <div className="px-6 py-10">
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Messages</h1>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Messages</h1>
           <p className="mt-1 text-sm text-slate-500">
             Dealer communications — inbound and outbound
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href="/messages/new">
             <Plus className="mr-1.5 h-4 w-4" />
             New message

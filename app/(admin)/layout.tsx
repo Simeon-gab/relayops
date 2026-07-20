@@ -59,10 +59,12 @@ export default async function AdminLayout({
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4">
           <MobileNav />
-          <div className="flex flex-1 items-center justify-end gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
             <NotificationsBell />
-            <div className="h-4 w-px bg-border mx-1" />
-            <span className="text-sm text-muted-foreground">{user.email}</span>
+            <div className="mx-1 hidden h-4 w-px bg-border sm:block" />
+            <span className="hidden max-w-[38vw] truncate text-sm text-muted-foreground sm:inline">
+              {user.email}
+            </span>
             <SignOutButton />
           </div>
         </header>

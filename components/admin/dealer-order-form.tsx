@@ -342,7 +342,7 @@ export function DealerOrderForm({ dealers, products, defaultDealerId }: Props) {
           {items.map((item, index) => (
             <div
               key={index}
-              className="grid grid-cols-[1fr_80px_120px_36px] items-start gap-3"
+              className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 sm:grid sm:grid-cols-[1fr_80px_120px_36px] sm:items-start sm:gap-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0"
             >
               <div className="space-y-1">
                 <Combobox
@@ -361,36 +361,44 @@ export function DealerOrderForm({ dealers, products, defaultDealerId }: Props) {
                 )}
               </div>
 
-              <Input
-                type="number"
-                min={1}
-                value={item.quantity}
-                onChange={(e) => setItemQuantity(index, e.target.value)}
-                disabled={isPending}
-                className="text-center tabular-nums"
-              />
+              {/* Qty / price / delete: a wrapped row on mobile; on sm+ the
+                  wrapper dissolves (sm:contents) so each control fills its
+                  own grid column. */}
+              <div className="mt-2 flex items-center gap-2 sm:mt-0 sm:contents">
+                <Input
+                  type="number"
+                  min={1}
+                  aria-label="Quantity"
+                  value={item.quantity}
+                  onChange={(e) => setItemQuantity(index, e.target.value)}
+                  disabled={isPending}
+                  className="w-16 text-center tabular-nums sm:w-full"
+                />
 
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={item.unit_price_naira}
-                onChange={(e) => setItemPrice(index, e.target.value)}
-                disabled={isPending}
-                placeholder="Default"
-                className="tabular-nums"
-              />
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  aria-label="Unit price (₦)"
+                  value={item.unit_price_naira}
+                  onChange={(e) => setItemPrice(index, e.target.value)}
+                  disabled={isPending}
+                  placeholder="Price ₦"
+                  className="min-w-0 flex-1 tabular-nums sm:w-full sm:flex-none"
+                />
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => removeItem(index)}
-                disabled={isPending || items.length === 1}
-                className="mt-0.5 text-slate-400 hover:text-red-600"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Remove item"
+                  onClick={() => removeItem(index)}
+                  disabled={isPending || items.length === 1}
+                  className="shrink-0 text-slate-400 hover:text-red-600 sm:mt-0.5"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
