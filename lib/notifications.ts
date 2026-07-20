@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendAdminSummaryEmail } from '@/lib/email'
 
 export interface NotificationInput {
   recipientUserId: string
@@ -39,7 +40,7 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
     const admin = createAdminClient()
     const { data: admins, error } = await admin
       .from('users')
-      .select('id')
+      .select('id, email')
       .eq('role', 'admin')
 
     if (error || !admins?.length) return
@@ -55,6 +56,22 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
 
     const { error: insertErr } = await admin.from('notifications').insert(rows)
     if (insertErr) console.error('[notifications] bulk insert failed:', insertErr.message)
+
+    // Also email a structured summary to admins (best-effort; no-ops if Resend unset).
+    const adminEmails = (admins as Array<{ email: string | null }>)
+      .map((u) => u.email)
+      .filter((e): e is string => !!e)
+    await sendAdminSummaryEmail(
+      {
+        subject: `RelayOps: ${input.title}`,
+        title: input.title,
+        description: input.description,
+        eventType: input.eventType,
+        entityType: input.entityType,
+        entityId: input.entityId,
+      },
+      adminEmails
+    )
   } catch (err) {
     console.error('[notifications] unexpected error:', err)
   }
