@@ -140,10 +140,12 @@ export async function createDealerOrder(
       .eq('id', input.dealer_id)
       .single()
 
+    const itemCount = input.items.length
+    const totalQty = input.items.reduce((sum, i) => sum + (i.quantity || 0), 0)
     notifyAllAdmins({
       eventType: 'order_created',
       title: `New order from ${dealerInfo?.business_name ?? 'dealer'}`,
-      description: `${input.items.length} item(s) requested`,
+      description: `${itemCount} ${itemCount === 1 ? 'product' : 'products'} · ${totalQty} ${totalQty === 1 ? 'unit' : 'units'} requested`,
       entityType: 'order',
       entityId: orderId,
     }).catch((err) => console.error('[notifications] broadcast failed:', err))

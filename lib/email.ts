@@ -43,6 +43,42 @@ function entityLink(entityType?: string, entityId?: string): string | undefined 
   return `${appBaseUrl()}${path}/${entityId}`
 }
 
+// Human-friendly label, icon, and accent colour for each internal event type.
+const EVENT_META: Record<string, { label: string; emoji: string; accent: string }> = {
+  order_created: { label: 'New order', emoji: '🛒', accent: '#1F4D3C' },
+  order_auto_fulfilled: { label: 'Order fulfilled', emoji: '✅', accent: '#0f766e' },
+  message_received: { label: 'New message', emoji: '💬', accent: '#2563eb' },
+  payment_received: { label: 'Payment received', emoji: '💰', accent: '#0f766e' },
+  receipt_extracted: { label: 'Receipt read', emoji: '🧾', accent: '#7c3aed' },
+  shipment_dispatched: { label: 'Shipment dispatched', emoji: '🚚', accent: '#ea580c' },
+  shipment_delivered: { label: 'Delivered', emoji: '📦', accent: '#0f766e' },
+  allocation_pending: { label: 'Allocation needed', emoji: '⚖️', accent: '#d97706' },
+}
+
+function prettify(slug: string): string {
+  return slug.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function eventMeta(eventType?: string): { label: string; emoji: string; accent: string } {
+  if (eventType && EVENT_META[eventType]) return EVENT_META[eventType]
+  return { label: eventType ? prettify(eventType) : 'Update', emoji: '🔔', accent: '#1F4D3C' }
+}
+
+function formatNaijaTime(): string {
+  try {
+    return new Intl.DateTimeFormat('en-NG', {
+      timeZone: 'Africa/Lagos',
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(new Date())
+  } catch {
+    return ''
+  }
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -52,35 +88,47 @@ function escapeHtml(s: string): string {
 }
 
 function renderHtml(input: SummaryEmailInput, link?: string): string {
-  const desc = input.description ? `<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.5">${escapeHtml(input.description)}</p>` : ''
-  const button = link
-    ? `<a href="${link}" style="display:inline-block;background:#1F4D3C;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 18px;border-radius:6px">Open in RelayOps</a>`
+  const meta = eventMeta(input.eventType)
+  const when = formatNaijaTime()
+  const preview = escapeHtml(input.description || input.title)
+  const desc = input.description
+    ? `<p style="margin:0 0 22px;color:#4b5563;font-size:15px;line-height:1.55">${escapeHtml(input.description)}</p>`
     : ''
-  const tag = input.eventType
-    ? `<span style="display:inline-block;background:#E7F0EB;color:#1F4D3C;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;letter-spacing:.02em">${escapeHtml(input.eventType)}</span>`
+  const button = link
+    ? `<a href="${link}" style="display:inline-block;background:${meta.accent};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:9px">Open in RelayOps &nbsp;&rarr;</a>`
     : ''
   return `<!doctype html>
-<html><body style="margin:0;background:#f3f4f6;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
-    <div style="background:linear-gradient(160deg,#1F4D3C,#163828);padding:20px 24px">
-      <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:-.01em">RelayOps</div>
-      <div style="color:#c9d9d1;font-size:12px;margin-top:2px">Operations summary</div>
+<html>
+<head>
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+</head>
+<body style="margin:0;background:#eef1f0;padding:24px 16px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#eef1f0">${preview}</div>
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8e5;box-shadow:0 2px 6px rgba(16,40,30,.07)">
+    <div style="background:linear-gradient(135deg,#1F4D3C 0%,#163828 100%);padding:22px 26px">
+      <div style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-.01em">RelayOps</div>
+      <div style="color:#a9c4b8;font-size:11px;margin-top:3px;letter-spacing:.08em;text-transform:uppercase">Operations summary</div>
     </div>
-    <div style="padding:24px">
-      <div style="margin-bottom:12px">${tag}</div>
-      <h1 style="margin:0 0 12px;font-size:18px;color:#111827;line-height:1.35">${escapeHtml(input.title)}</h1>
+    <div style="padding:26px">
+      <div style="margin-bottom:16px">
+        <span style="display:inline-block;background:#f1f5f3;color:${meta.accent};font-size:13px;font-weight:600;padding:5px 13px;border-radius:999px;border:1px solid #e2e8e5">${meta.emoji}&nbsp; ${escapeHtml(meta.label)}</span>
+      </div>
+      <h1 style="margin:0 0 12px;font-size:21px;color:#0f172a;line-height:1.3;font-weight:700">${escapeHtml(input.title)}</h1>
       ${desc}
       ${button}
     </div>
-    <div style="padding:14px 24px;border-top:1px solid #f0f0f0;color:#9ca3af;font-size:12px">
-      Automated summary from RelayOps. You are receiving this because you are an admin.
+    <div style="padding:16px 26px;border-top:1px solid #eef1f0;color:#94a3a0;font-size:12px;line-height:1.5">
+      Automated summary from RelayOps${when ? ` &middot; ${when}` : ''}<br>You&rsquo;re receiving this as an admin.
     </div>
   </div>
-</body></html>`
+</body>
+</html>`
 }
 
 function renderText(input: SummaryEmailInput, link?: string): string {
-  const parts = [input.title]
+  const meta = eventMeta(input.eventType)
+  const parts = [`[${meta.label}] ${input.title}`]
   if (input.description) parts.push('', input.description)
   if (link) parts.push('', `Open: ${link}`)
   parts.push('', '— RelayOps automated summary')
