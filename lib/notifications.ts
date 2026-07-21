@@ -1,5 +1,15 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAdminSummaryEmail } from '@/lib/email'
+import { sendAdminSms } from '@/lib/sms'
+
+// SMS costs money per text, so only high-value events trigger it
+// (everything still goes to email + in-app notifications).
+const IMPORTANT_SMS_EVENTS = new Set([
+  'order_created',
+  'payment_received',
+  'allocation_pending',
+  'order_auto_fulfilled',
+])
 
 export interface NotificationInput {
   recipientUserId: string
@@ -72,6 +82,12 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
       },
       adminEmails
     )
+
+    // Real-time SMS for important events only (best-effort; no-ops if unset).
+    if (IMPORTANT_SMS_EVENTS.has(input.eventType)) {
+      const smsText = `RelayOps: ${input.title}${input.description ? ` — ${input.description}` : ''}`
+      await sendAdminSms(smsText)
+    }
   } catch (err) {
     console.error('[notifications] unexpected error:', err)
   }
