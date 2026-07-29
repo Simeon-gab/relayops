@@ -24,6 +24,7 @@ const columns: Column<ProductSummary>[] = [
   },
   {
     header: 'SKU',
+    className: 'hidden md:table-cell',
     cell: (r) => (
       <span className="font-mono text-xs text-slate-600">{r.sku_code}</span>
     ),
@@ -34,17 +35,19 @@ const columns: Column<ProductSummary>[] = [
   },
   {
     header: 'Category',
+    className: 'hidden lg:table-cell',
     cell: (r) => (
       <span className="capitalize text-slate-600">{r.category}</span>
     ),
   },
   {
     header: 'Color',
+    className: 'hidden lg:table-cell',
     cell: (r) => <span className="text-slate-600">{r.color ?? '—'}</span>,
   },
   {
     header: 'Sell price',
-    className: 'text-right',
+    className: 'hidden text-right sm:table-cell',
     cell: (r) => (
       <span className="tabular-nums">
         {r.sell_price_naira != null ? formatNairaCurrency(r.sell_price_naira) : '—'}

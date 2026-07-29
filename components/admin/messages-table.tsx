@@ -67,10 +67,10 @@ export function MessagesTable({ messages }: Props) {
           <th className="px-4 py-3 font-medium text-slate-600">Date</th>
           <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
           <th className="px-4 py-3 font-medium text-slate-600">Channel</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Preview</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Lang</th>
-          <th className="px-4 py-3 text-center font-medium text-slate-600">Receipt</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Intent</th>
+          <th className="hidden px-4 py-3 font-medium text-slate-600 md:table-cell">Preview</th>
+          <th className="hidden px-4 py-3 font-medium text-slate-600 lg:table-cell">Lang</th>
+          <th className="hidden px-4 py-3 text-center font-medium text-slate-600 lg:table-cell">Receipt</th>
+          <th className="hidden px-4 py-3 font-medium text-slate-600 md:table-cell">Intent</th>
         </tr>
       </thead>
       <tbody className="divide-y">
@@ -80,7 +80,7 @@ export function MessagesTable({ messages }: Props) {
             className="cursor-pointer hover:bg-subtle"
             onClick={() => router.push(`/messages/${msg.id}`)}
           >
-            <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+            <td className="px-4 py-3 text-xs text-slate-500 sm:whitespace-nowrap">
               {formatDateTime(msg.created_at)}
             </td>
             <td className="px-4 py-3">
@@ -92,22 +92,22 @@ export function MessagesTable({ messages }: Props) {
                 {CHANNEL_LABELS[msg.channel] ?? msg.channel}
               </Badge>
             </td>
-            <td className="max-w-xs px-4 py-3">
+            <td className="hidden max-w-xs px-4 py-3 md:table-cell">
               <p className="truncate text-slate-700">
                 {msg.original_text.length > 80
                   ? msg.original_text.slice(0, 80) + '…'
                   : msg.original_text}
               </p>
             </td>
-            <td className="px-4 py-3 text-xs text-slate-500 uppercase">
+            <td className="hidden px-4 py-3 text-xs text-slate-500 uppercase lg:table-cell">
               {msg.language ?? '—'}
             </td>
-            <td className="px-4 py-3 text-center">
+            <td className="hidden px-4 py-3 text-center lg:table-cell">
               {msg.has_receipt && (
                 <Paperclip className="mx-auto h-4 w-4 text-slate-400" aria-label="Has receipt" />
               )}
             </td>
-            <td className="px-4 py-3">
+            <td className="hidden px-4 py-3 md:table-cell">
               {msg.parse_intent ? (
                 <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${INTENT_COLOURS[msg.parse_intent] ?? 'bg-slate-100 text-slate-600'}`}>
                   {INTENT_LABELS[msg.parse_intent] ?? msg.parse_intent}

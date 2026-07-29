@@ -20,6 +20,7 @@ const columns: Column<DealerSummary>[] = [
   },
   {
     header: 'Contact',
+    className: 'hidden md:table-cell',
     cell: (r) => (
       <div>
         <p className="text-sm">{r.contact_name}</p>
@@ -33,10 +34,12 @@ const columns: Column<DealerSummary>[] = [
   },
   {
     header: 'State',
+    className: 'hidden md:table-cell',
     cell: (r) => <span className="text-slate-600">{r.state}</span>,
   },
   {
     header: 'Language',
+    className: 'hidden lg:table-cell',
     cell: (r) => (
       <Badge variant="outline" className="text-xs">
         {LANG_LABELS[r.preferred_language] ?? r.preferred_language.toUpperCase()}
@@ -45,6 +48,7 @@ const columns: Column<DealerSummary>[] = [
   },
   {
     header: 'Served by',
+    className: 'hidden lg:table-cell',
     cell: (r) => (
       <Badge variant="secondary" className="font-mono text-xs">
         {r.served_by_warehouse_code}
@@ -53,7 +57,7 @@ const columns: Column<DealerSummary>[] = [
   },
   {
     header: 'Active shipments',
-    className: 'text-right',
+    className: 'hidden text-right sm:table-cell',
     cell: (r) => (
       <span
         className={

@@ -157,7 +157,7 @@ export function CreateShipmentFromOrder({ order, warehouses, stockByWarehouse }:
             </div>
 
             {/* Items table */}
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-subtle text-left">

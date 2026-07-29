@@ -276,14 +276,14 @@ export function ContainerForm({ products }: Props) {
 
         <div className="space-y-3">
           {items.map((item, index) => (
-            <div key={index} className="flex items-start gap-3">
-              <div className="flex-1 space-y-1">
+            <div key={index} className="flex items-start gap-2 sm:gap-3">
+              <div className="min-w-0 flex-1 space-y-1">
                 <Select
                   value={item.product_id}
                   onValueChange={(v) => setItemProduct(index, v)}
                   disabled={isPending}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select product…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -305,7 +305,7 @@ export function ContainerForm({ products }: Props) {
                 )}
               </div>
 
-              <div className="w-24">
+              <div className="w-16 shrink-0 sm:w-24">
                 <Input
                   type="number"
                   min={1}

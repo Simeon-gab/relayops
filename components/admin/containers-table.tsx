@@ -33,20 +33,21 @@ const columns: Column<ContainerSummary>[] = [
   },
   {
     header: 'SKUs',
-    className: 'text-right',
+    className: 'hidden text-right sm:table-cell',
     cell: (r) => (
       <span className="tabular-nums text-slate-600">{r.sku_count}</span>
     ),
   },
   {
     header: 'Total units',
-    className: 'text-right',
+    className: 'hidden text-right sm:table-cell',
     cell: (r) => (
       <span className="tabular-nums font-semibold">{r.total_units}</span>
     ),
   },
   {
     header: 'Notes',
+    className: 'hidden lg:table-cell',
     cell: (r) => (
       <span className="text-sm text-slate-500">
         {r.notes ? (r.notes.length > 60 ? r.notes.slice(0, 60) + '…' : r.notes) : '—'}

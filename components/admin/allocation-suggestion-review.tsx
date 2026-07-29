@@ -170,6 +170,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
                     Remove
                   </button>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <tbody className="divide-y">
                     {alloc.items.map((item: AllocSuggestedItem, ii) => (
@@ -189,6 +190,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
                     ))}
                   </tbody>
                 </table>
+                </div>
                 {alloc.reasoning && (
                   <p className="border-t px-4 py-2 text-xs italic text-slate-400">{alloc.reasoning}</p>
                 )}
@@ -204,7 +206,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Transfer to KANO ({totalTransferUnits} units)
           </h3>
-          <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-subtle text-left">
@@ -243,7 +245,7 @@ export function AllocationSuggestionReview({ suggestion, containerId, onReject }
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Remaining in LAGOS stock
           </h3>
-          <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-subtle text-left">

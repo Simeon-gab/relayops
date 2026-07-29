@@ -277,7 +277,7 @@ export function PaymentForm({ dealers, defaultDealerId, outstandingShipmentsByDe
                 onValueChange={(v) => { setPaymentMethod(v); clearError('paymentMethod') }}
                 disabled={isPending}
               >
-                <SelectTrigger id="payment_method">
+                <SelectTrigger id="payment_method" className="w-full">
                   <SelectValue placeholder="Select method…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -311,7 +311,7 @@ export function PaymentForm({ dealers, defaultDealerId, outstandingShipmentsByDe
               onValueChange={setShipmentId}
               disabled={isPending || !dealerId}
             >
-              <SelectTrigger id="shipment">
+              <SelectTrigger id="shipment" className="w-full">
                 <SelectValue placeholder={dealerId ? 'No specific shipment' : 'Select a dealer first'} />
               </SelectTrigger>
               <SelectContent>

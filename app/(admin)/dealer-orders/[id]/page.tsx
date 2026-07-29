@@ -122,7 +122,7 @@ export default async function DealerOrderDetailPage({ params }: Props) {
       {/* Items section */}
       <section className="mb-8">
         <h2 className="mb-3 text-base font-semibold text-foreground">Items</h2>
-        <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-subtle text-left">
@@ -183,7 +183,7 @@ export default async function DealerOrderDetailPage({ params }: Props) {
               : ''}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-subtle text-left">

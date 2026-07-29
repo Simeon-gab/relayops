@@ -246,6 +246,7 @@ export function MessageParseReview({ parseResult, messageId, availableProducts }
               <div className="border-b px-4 py-3">
                 <h3 className="text-sm font-semibold text-slate-700">Order items — edit SKU or quantity if needed</h3>
               </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-slate-50 text-left">
@@ -295,6 +296,7 @@ export function MessageParseReview({ parseResult, messageId, availableProducts }
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* Timeline / urgency / conditions */}

@@ -23,12 +23,14 @@ function shortId(id: string): string {
 const columns: Column<ShipmentSummary>[] = [
   {
     header: 'ID',
+    className: 'hidden md:table-cell',
     cell: (r) => (
       <span className="font-mono text-xs text-slate-500">…{shortId(r.id)}</span>
     ),
   },
   {
     header: 'Type',
+    className: 'hidden sm:table-cell',
     cell: (r) =>
       r.shipment_type === 'dealer' ? (
         <span className="flex items-center gap-1.5 text-slate-600">
@@ -65,6 +67,7 @@ const columns: Column<ShipmentSummary>[] = [
   },
   {
     header: 'Dispatched',
+    className: 'hidden lg:table-cell',
     cell: (r) => (
       <span className="text-sm text-slate-600">{formatDate(r.dispatched_at)}</span>
     ),
@@ -80,7 +83,7 @@ const columns: Column<ShipmentSummary>[] = [
   },
   {
     header: 'Paid',
-    className: 'text-right',
+    className: 'hidden text-right sm:table-cell',
     cell: (r) => {
       const total = r.total_amount_naira ?? 0
       const paid = r.amount_paid_naira

@@ -38,16 +38,16 @@ export function PaymentsTable({ payments }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-white">
+    <div className="overflow-x-auto rounded-xl border bg-white">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-subtle text-left">
             <th className="px-4 py-3 font-medium text-slate-600">Date</th>
             <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
             <th className="px-4 py-3 text-right font-medium text-slate-600">Amount</th>
-            <th className="px-4 py-3 font-medium text-slate-600">Method</th>
-            <th className="px-4 py-3 font-medium text-slate-600">Reference</th>
-            <th className="px-4 py-3 font-medium text-slate-600">Shipment</th>
+            <th className="hidden px-4 py-3 font-medium text-slate-600 sm:table-cell">Method</th>
+            <th className="hidden px-4 py-3 font-medium text-slate-600 md:table-cell">Reference</th>
+            <th className="hidden px-4 py-3 font-medium text-slate-600 lg:table-cell">Shipment</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -57,7 +57,7 @@ export function PaymentsTable({ payments }: Props) {
               onClick={() => router.push(`/payments/${p.id}`)}
               className="cursor-pointer hover:bg-subtle"
             >
-              <td className="px-4 py-3 text-slate-600">{formatDate(p.payment_date)}</td>
+              <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatDate(p.payment_date)}</td>
               <td className="px-4 py-3">
                 <span className="font-medium text-slate-900">{p.business_name}</span>
                 <span className="block text-xs text-slate-500">{p.city}</span>
@@ -65,15 +65,15 @@ export function PaymentsTable({ payments }: Props) {
               <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">
                 {formatNairaCurrency(p.amount_naira)}
               </td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="hidden px-4 py-3 text-slate-600 sm:table-cell">
                 {p.payment_method ? (METHOD_LABELS[p.payment_method] ?? p.payment_method) : '—'}
               </td>
-              <td className="px-4 py-3">
+              <td className="hidden px-4 py-3 md:table-cell">
                 <span className="font-mono text-xs text-slate-500">
                   {p.payment_reference ?? '—'}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="hidden px-4 py-3 lg:table-cell">
                 <span className="font-mono text-xs text-slate-500">
                   {p.shipment_id ? `…${shortId(p.shipment_id)}` : '—'}
                 </span>

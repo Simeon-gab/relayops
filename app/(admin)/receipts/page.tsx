@@ -100,15 +100,15 @@ export default async function ReceiptsPage({ searchParams }: Props) {
           <p className="text-sm text-slate-500">No receipts to review.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                 <th className="px-4 py-3">Dealer</th>
-                <th className="px-4 py-3">Uploaded</th>
+                <th className="hidden px-4 py-3 md:table-cell">Uploaded</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Confidence</th>
-                <th className="px-4 py-3">Linked order</th>
+                <th className="hidden px-4 py-3 sm:table-cell">Confidence</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Linked order</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -116,7 +116,7 @@ export default async function ReceiptsPage({ searchParams }: Props) {
               {receipts.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/50">
                   <td className="px-4 py-3 font-medium text-slate-900">{r.business_name}</td>
-                  <td className="px-4 py-3 text-slate-500">{formatDateTime(r.created_at)}</td>
+                  <td className="hidden px-4 py-3 text-slate-500 md:table-cell">{formatDateTime(r.created_at)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
@@ -126,14 +126,14 @@ export default async function ReceiptsPage({ searchParams }: Props) {
                       {STATUS_LABELS[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 sm:table-cell">
                     {r.is_payment_receipt === false ? (
                       <span className="text-xs text-slate-400">Not a receipt</span>
                     ) : (
                       <ConfidencePill value={r.overall_confidence} />
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="hidden px-4 py-3 text-slate-500 lg:table-cell">
                     {r.linked_order_id ? (
                       <Link
                         href={`/dealer-orders/${r.linked_order_id}`}

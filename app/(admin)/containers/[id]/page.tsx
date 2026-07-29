@@ -77,7 +77,7 @@ export default async function ContainerDetailPage({ params }: Props) {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Contents
         </h2>
-        <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-subtle text-left">

@@ -148,7 +148,7 @@ export default async function DealerShipmentDetailPage({ params }: Props) {
       {/* Items table */}
       <section className="mb-8">
         <h2 className="mb-3 text-base font-semibold text-foreground">Items</h2>
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-subtle text-left">

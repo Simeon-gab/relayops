@@ -64,14 +64,14 @@ export default async function DealerOrdersPage({ searchParams }: Props) {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-subtle text-left">
               <th className="px-4 py-3 font-medium text-slate-600">Order date</th>
               <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
-              <th className="px-4 py-3 font-medium text-slate-600">Items</th>
-              <th className="px-4 py-3 text-right font-medium text-slate-600">Total qty</th>
+              <th className="hidden px-4 py-3 font-medium text-slate-600 md:table-cell">Items</th>
+              <th className="hidden px-4 py-3 text-right font-medium text-slate-600 sm:table-cell">Total qty</th>
               <th className="px-4 py-3 font-medium text-slate-600">Status</th>
             </tr>
           </thead>
@@ -99,14 +99,14 @@ export default async function DealerOrdersPage({ searchParams }: Props) {
                       <span className="block text-xs text-slate-500">{order.city}, {order.state}</span>
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 md:table-cell">
                     <Link href={`/dealer-orders/${order.id}`} className="block w-full">
                       <span className="font-mono text-xs text-slate-600">
                         {formatSummary(order.items)}
                       </span>
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="hidden px-4 py-3 text-right sm:table-cell">
                     <Link href={`/dealer-orders/${order.id}`} className="block w-full">
                       <span className="tabular-nums font-semibold text-slate-900">
                         {order.total_qty}

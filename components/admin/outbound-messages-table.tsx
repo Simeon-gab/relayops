@@ -47,15 +47,15 @@ export function OutboundMessagesTable({ messages }: Props) {
           <th className="px-4 py-3 font-medium text-slate-600">Date</th>
           <th className="px-4 py-3 font-medium text-slate-600">Dealer</th>
           <th className="px-4 py-3 font-medium text-slate-600">Channel</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Message</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Lang</th>
-          <th className="px-4 py-3 font-medium text-slate-600">Translation</th>
+          <th className="hidden px-4 py-3 font-medium text-slate-600 md:table-cell">Message</th>
+          <th className="hidden px-4 py-3 font-medium text-slate-600 lg:table-cell">Lang</th>
+          <th className="hidden px-4 py-3 font-medium text-slate-600 lg:table-cell">Translation</th>
         </tr>
       </thead>
       <tbody className="divide-y">
         {messages.map((msg) => (
           <tr key={msg.id} className="hover:bg-subtle">
-            <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+            <td className="px-4 py-3 text-xs text-slate-500 sm:whitespace-nowrap">
               {formatDateTime(msg.created_at)}
             </td>
             <td className="px-4 py-3">
@@ -67,17 +67,17 @@ export function OutboundMessagesTable({ messages }: Props) {
                 {CHANNEL_LABELS[msg.channel] ?? msg.channel}
               </Badge>
             </td>
-            <td className="max-w-xs px-4 py-3">
+            <td className="hidden max-w-xs px-4 py-3 md:table-cell">
               <p className="truncate text-slate-700">
                 {msg.original_text.length > 80
                   ? msg.original_text.slice(0, 80) + '…'
                   : msg.original_text}
               </p>
             </td>
-            <td className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">
+            <td className="hidden px-4 py-3 text-xs font-medium text-slate-500 uppercase lg:table-cell">
               {msg.language ? (LANG_LABELS[msg.language] ?? msg.language.toUpperCase()) : 'EN'}
             </td>
-            <td className="max-w-xs px-4 py-3">
+            <td className="hidden max-w-xs px-4 py-3 lg:table-cell">
               {msg.translated_text ? (
                 <p className="truncate text-xs italic text-slate-400">
                   {msg.translated_text.length > 70

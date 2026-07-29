@@ -208,7 +208,7 @@ export default async function ReceiptDetailPage({ params }: Props) {
           <h2 className="mb-3 text-base font-semibold text-foreground">
             Outstanding shipments for {receipt.business_name}
           </h2>
-          <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">

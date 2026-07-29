@@ -283,7 +283,7 @@ export function ReceiptExtractionReview({ extraction, receiptId, dealerShipments
                 <ConfidenceBadge value={extraction.field_confidences.method} />
               </Label>
               <Select value={method} onValueChange={setMethod} disabled={isPending}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -330,7 +330,7 @@ export function ReceiptExtractionReview({ extraction, receiptId, dealerShipments
           <div className="mt-4 space-y-1.5">
             <Label>Link to shipment (optional)</Label>
             <Select value={shipmentId} onValueChange={setShipmentId} disabled={isPending}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

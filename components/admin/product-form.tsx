@@ -196,7 +196,7 @@ export function ProductForm({ product, mode }: Props) {
                 onValueChange={(v) => { setCategory(v as Category); clearError('category') }}
                 disabled={isPending}
               >
-                <SelectTrigger id="category">
+                <SelectTrigger id="category" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

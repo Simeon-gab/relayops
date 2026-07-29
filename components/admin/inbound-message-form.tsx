@@ -190,7 +190,7 @@ export function InboundMessageForm({ dealers, defaultDealerId }: Props) {
       <div className="space-y-1.5">
         <Label htmlFor="channel">Channel <span className="text-red-500">*</span></Label>
         <Select value={channel} onValueChange={setChannel} disabled={isPending}>
-          <SelectTrigger id="channel">
+          <SelectTrigger id="channel" className="w-full">
             <SelectValue placeholder="Select channel…" />
           </SelectTrigger>
           <SelectContent>
@@ -206,7 +206,7 @@ export function InboundMessageForm({ dealers, defaultDealerId }: Props) {
       <div className="space-y-1.5">
         <Label htmlFor="language">Language</Label>
         <Select value={language} onValueChange={setLanguage} disabled={isPending}>
-          <SelectTrigger id="language">
+          <SelectTrigger id="language" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

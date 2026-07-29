@@ -111,7 +111,7 @@ export default async function MessagesPage({ searchParams }: Props) {
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="overflow-x-auto rounded-xl border bg-white">
         {direction === 'inbound' ? (
           <MessagesTable messages={inboundMessages} />
         ) : (
