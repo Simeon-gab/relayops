@@ -1,5 +1,6 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
@@ -11,7 +12,7 @@ async function getAdminUser() {
   const { data: { user } } = await db.auth.getUser()
   if (!user) return null
   const { data } = await db.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
+  if (!can(data?.role, 'review_receipts')) return null
   return { db, user }
 }
 

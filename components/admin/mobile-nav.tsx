@@ -11,8 +11,9 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { NavLinks } from './nav-links'
+import type { StaffRole } from '@/lib/auth/roles'
 
-export function MobileNav() {
+export function MobileNav({ role }: { role: StaffRole }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -37,7 +38,7 @@ export function MobileNav() {
           </SheetHeader>
 
           <div className="flex-1 overflow-auto px-3 py-4">
-            <NavLinks onNavigate={() => setOpen(false)} />
+            <NavLinks role={role} onNavigate={() => setOpen(false)} />
           </div>
 
           <div className="border-t px-4 py-3">

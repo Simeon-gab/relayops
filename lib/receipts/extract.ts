@@ -6,6 +6,7 @@ import {
   getReceiptExtractionUserPrompt,
 } from '@/lib/ai/prompts/receipt-extraction'
 import { notifyAllAdmins } from '@/lib/notifications'
+import { emitPaymentProposal } from '@/lib/agents/emit'
 
 // Extended result that includes messageId so callers can revalidate paths if needed.
 export type ExtractionCoreResult =
@@ -22,6 +23,7 @@ export async function runExtractionForReceipt(
   receiptId: string,
   actorUserId: string,
 ): Promise<ExtractionCoreResult> {
+  const startedAt = Date.now()
   const adminDb = createAdminClient()
 
   // 1. Load receipt row
@@ -256,6 +258,19 @@ export async function runExtractionForReceipt(
       entityType: 'receipt',
       entityId: receiptId,
     }).catch((err) => console.error('[notifications] broadcast failed:', err))
+  }
+
+  // 11. File it as a decision. Reading the receipt is automatic; confirming
+  //      that money arrived never is — see NEVER_AUTO in lib/policy.ts.
+  if (newStatus === 'extracted' || newStatus === 'needs_review') {
+    await emitPaymentProposal({
+      receiptId,
+      dealerName: businessName,
+      amountNaira: e.amount_naira != null ? Number(e.amount_naira) : null,
+      reference: e.payment_reference ?? null,
+      confidence,
+      startedAt,
+    })
   }
 
   return {

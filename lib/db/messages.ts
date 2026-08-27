@@ -210,6 +210,95 @@ export async function getMessageCounts(): Promise<{
   return { total, unparsed, parsed: total - unparsed, order_requests, payments, other_parsed }
 }
 
+// ─── getMessageActionQueue ────────────────────────────────────────────────────
+
+export type MessageQueueItem = {
+  id: string
+  business_name: string
+  city: string
+  channel: string
+  original_text: string
+  created_at: string
+  state: 'unparsed' | 'order_ready' | 'payment_ready'
+}
+
+type RawQueueRow = {
+  id: string
+  channel: string
+  original_text: string
+  created_at: string
+  dealers: { business_name: string; city: string } | null
+  receipts: Array<{ id: string; status: string }>
+  message_parse_results: Array<{ id: string; parsed_intent: string }>
+}
+
+/**
+ * Inbound messages still waiting on a human decision:
+ * unparsed, or parsed as an order request with no order created from it yet,
+ * or a payment notification whose receipt hasn't been matched or rejected.
+ */
+export async function getMessageActionQueue(): Promise<MessageQueueItem[]> {
+  const db = await createClient()
+
+  const { data, error } = await db
+    .from('messages')
+    .select(`
+      id, channel, original_text, created_at,
+      dealers!dealer_id(business_name, city),
+      receipts!message_id(id, status),
+      message_parse_results!message_id(id, parsed_intent)
+    `)
+    .eq('direction', 'inbound')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) throw error
+  const rows = (data ?? []) as unknown as RawQueueRow[]
+  if (rows.length === 0) return []
+
+  const { data: linkedOrders } = await db
+    .from('dealer_orders')
+    .select('source_message_id')
+    .in('source_message_id', rows.map((r) => r.id))
+
+  const actioned = new Set(
+    ((linkedOrders ?? []) as Array<{ source_message_id: string | null }>)
+      .map((o) => o.source_message_id)
+      .filter(Boolean)
+  )
+
+  const queue: MessageQueueItem[] = []
+  for (const m of rows) {
+    const latestParse = m.message_parse_results[m.message_parse_results.length - 1]
+
+    let state: MessageQueueItem['state'] | null = null
+    if (!latestParse) {
+      state = 'unparsed'
+    } else if (latestParse.parsed_intent === 'order_request' && !actioned.has(m.id)) {
+      state = 'order_ready'
+    } else if (
+      latestParse.parsed_intent === 'payment_notification' &&
+      m.receipts.some((r) => !['matched', 'rejected'].includes(r.status))
+    ) {
+      state = 'payment_ready'
+    }
+
+    if (state) {
+      queue.push({
+        id: m.id,
+        business_name: m.dealers?.business_name ?? '—',
+        city: m.dealers?.city ?? '',
+        channel: m.channel,
+        original_text: m.original_text,
+        created_at: m.created_at,
+        state,
+      })
+    }
+  }
+
+  return queue
+}
+
 // ─── getOutboundMessages ──────────────────────────────────────────────────────
 
 type RawOutboundRow = {

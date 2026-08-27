@@ -1,5 +1,6 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Client } from 'pg'
@@ -10,6 +11,9 @@ import { getMessageParsingSystemPrompt, getMessageParsingUserPrompt } from '@/li
 import { getDispatchDraftingSystemPrompt, getDispatchDraftingUserPrompt, type DispatchDraftContext } from '@/lib/ai/prompts/dispatch-drafting'
 import { getDealerRecentOrders } from '@/lib/db/messages'
 import { notifyAllAdmins } from '@/lib/notifications'
+import { emitOrderProposal } from '@/lib/agents/emit'
+import { logAgentRun } from '@/lib/db/ai-proposals'
+import { AI_MODEL } from '@/lib/ai/client'
 
 const VALID_CHANNELS = ['dealer_portal', 'whatsapp', 'sms'] as const
 type Channel = typeof VALID_CHANNELS[number]
@@ -41,7 +45,7 @@ export async function createInboundMessage(
     .eq('id', user.id)
     .single()
 
-  if (adminUser?.role !== 'admin') {
+  if (!can(adminUser?.role, 'handle_messages')) {
     return { success: false, error: 'Unauthorized — admin access required.' }
   }
 
@@ -156,6 +160,10 @@ export async function createInboundMessage(
       entityId: messageId,
     }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
+    // Read it straight away. Waiting for someone to press "parse" is what
+    // turned the message list into a backlog.
+    await parseAndPropose(messageId, dealerInfo?.business_name ?? 'A dealer')
+
     return { success: true, messageId, receiptId: receiptId ?? undefined }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -177,7 +185,7 @@ export async function parseMessage(messageId: string): Promise<ParseMessageResul
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'handle_messages')) return { success: false, error: 'Unauthorized.' }
 
   // 1. Load message + dealer
   const { data: msg } = await db
@@ -266,7 +274,7 @@ export async function parseMessage(messageId: string): Promise<ParseMessageResul
         intent,
         JSON.stringify(parsed),
         confidence,
-        'claude-sonnet-4-6',
+        AI_MODEL,
         reasoning,
         JSON.stringify({ text: rawText }),
         user.id,
@@ -290,6 +298,73 @@ export async function parseMessage(messageId: string): Promise<ParseMessageResul
   return { success: true, parseResultId, intent, confidence }
 }
 
+/**
+ * Parse an inbound message and file what it asks for as a proposal.
+ *
+ * Runs inline on arrival. Errors are contained: a message that cannot be
+ * parsed stays unparsed and is still recorded, and the queue on the messages
+ * page offers a manual retry.
+ */
+async function parseAndPropose(messageId: string, dealerName: string): Promise<void> {
+  const startedAt = Date.now()
+  try {
+    const parsed = await parseMessage(messageId)
+    if (!parsed.success) {
+      await logAgentRun({
+        agent: 'parse_message',
+        trigger: 'event',
+        subject_type: 'message',
+        subject_id: messageId,
+        ok: false,
+        duration_ms: Date.now() - startedAt,
+        error: parsed.error,
+      })
+      return
+    }
+
+    const db = await createClient()
+    const { data: row } = await db
+      .from('message_parse_results')
+      .select('extracted_data')
+      .eq('id', parsed.parseResultId)
+      .single()
+
+    const extracted = (row?.extracted_data ?? {}) as {
+      order_data?: {
+        items?: Array<{ quantity?: number; resolved_product_name?: string | null; description_in_message?: string }>
+      }
+    }
+    const items = extracted.order_data?.items ?? []
+
+    const itemSummary = items
+      .slice(0, 3)
+      .map((i) => `${i.quantity ?? '?'} × ${i.resolved_product_name ?? i.description_in_message ?? 'unclear item'}`)
+      .join(', ')
+
+    await emitOrderProposal({
+      messageId,
+      dealerName,
+      parseResultId: parsed.parseResultId,
+      intent: parsed.intent,
+      confidence: parsed.confidence,
+      itemCount: items.length,
+      itemSummary: items.length > 3 ? `${itemSummary} and ${items.length - 3} more` : itemSummary,
+      startedAt,
+    })
+  } catch (err) {
+    console.error('[agent] message parsing failed:', err instanceof Error ? err.message : err)
+    await logAgentRun({
+      agent: 'parse_message',
+      trigger: 'event',
+      subject_type: 'message',
+      subject_id: messageId,
+      ok: false,
+      duration_ms: Date.now() - startedAt,
+      error: err instanceof Error ? err.message : 'unknown',
+    })
+  }
+}
+
 // ─── convertParseToOrder ──────────────────────────────────────────────────────
 
 export interface ConvertOrderItem {
@@ -310,7 +385,7 @@ export async function convertParseToOrder(
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'handle_messages')) return { success: false, error: 'Unauthorized.' }
 
   if (!items.length) return { success: false, error: 'At least one item is required.' }
 
@@ -400,7 +475,7 @@ export async function rejectParseResult(
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'handle_messages')) return { success: false, error: 'Unauthorized.' }
 
   // Merge rejected flag into extracted_data
   const { data: existing } = await db
@@ -444,7 +519,7 @@ export async function draftDispatchMessage(input: DraftDispatchInput): Promise<D
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'handle_messages')) return { success: false, error: 'Unauthorized.' }
 
   const systemPrompt = getDispatchDraftingSystemPrompt()
   const userPrompt = getDispatchDraftingUserPrompt(input)
@@ -494,7 +569,7 @@ export async function saveOutboundMessage(input: SaveOutboundMessageInput): Prom
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'handle_messages')) return { success: false, error: 'Unauthorized.' }
 
   if (!input.dealer_id?.trim()) return { success: false, error: 'Dealer is required.' }
   if (!input.messageInLanguage?.trim()) return { success: false, error: 'Message text is required.' }

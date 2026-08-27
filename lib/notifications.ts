@@ -51,7 +51,7 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
     const { data: admins, error } = await admin
       .from('users')
       .select('id, email')
-      .eq('role', 'admin')
+      .in('role', ['md', 'manager'])
 
     if (error || !admins?.length) return
 

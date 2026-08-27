@@ -1,11 +1,14 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
 import { callClaudeText } from '@/lib/ai/client'
 import { getAllocationSystemPrompt, getAllocationUserPrompt } from '@/lib/ai/prompts/allocation-suggestion'
 import { notifyAllAdmins } from '@/lib/notifications'
+import { emitAllocationProposal } from '@/lib/agents/emit'
+import { logAgentRun } from '@/lib/db/ai-proposals'
 
 const LAGOS_WAREHOUSE_ID = '00000000-0000-0000-0001-000000000001'
 const KANO_WAREHOUSE_ID = '00000000-0000-0000-0001-000000000002'
@@ -46,7 +49,7 @@ export async function createContainer(
     .eq('id', user.id)
     .single()
 
-  if (adminUser?.role !== 'admin') {
+  if (!can(adminUser?.role, 'manage_containers')) {
     return { success: false, error: 'Unauthorized — admin access required.' }
   }
 
@@ -147,6 +150,11 @@ export async function createContainer(
       entityId: containerId,
     }).catch((err) => console.error('[notifications] broadcast failed:', err))
 
+    // Plan the split now rather than waiting for someone to ask for it. The
+    // proposal lands on the partner's dashboard; nothing moves until he
+    // approves it. Best-effort — the container is already committed.
+    await planAllocationInBackground(containerId, input.container_number.trim(), totalItems)
+
     return { success: true, containerId }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -154,6 +162,57 @@ export async function createContainer(
     return { success: false, error: message }
   } finally {
     await client.end()
+  }
+}
+
+/**
+ * Ask the allocation model for a plan as soon as a container is recorded, and
+ * file the answer as a proposal. Swallows its own errors: a failed suggestion
+ * must never roll back a container that has already landed.
+ */
+async function planAllocationInBackground(
+  containerId: string,
+  containerNumber: string,
+  totalUnits: number
+): Promise<void> {
+  const startedAt = Date.now()
+  try {
+    const result = await suggestContainerAllocation(containerId)
+    if (!result.success) {
+      await logAgentRun({
+        agent: 'suggest_allocation',
+        trigger: 'event',
+        subject_type: 'container',
+        subject_id: containerId,
+        ok: false,
+        duration_ms: Date.now() - startedAt,
+        error: result.error,
+      })
+      return
+    }
+
+    const { suggestion } = result
+    await emitAllocationProposal({
+      containerId,
+      containerNumber,
+      totalUnits,
+      dealersServed: suggestion.dealer_allocations.length,
+      kanoUnits: suggestion.kano_transfer.reduce((sum, t) => sum + t.quantity, 0),
+      confidence: suggestion.confidence ?? null,
+      suggestion: suggestion as unknown as Record<string, unknown>,
+      startedAt,
+    })
+  } catch (err) {
+    console.error('[agent] allocation planning failed:', err instanceof Error ? err.message : err)
+    await logAgentRun({
+      agent: 'suggest_allocation',
+      trigger: 'event',
+      subject_type: 'container',
+      subject_id: containerId,
+      ok: false,
+      duration_ms: Date.now() - startedAt,
+      error: err instanceof Error ? err.message : 'unknown',
+    })
   }
 }
 
@@ -213,7 +272,7 @@ export async function suggestContainerAllocation(
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'allocate_container')) return { success: false, error: 'Unauthorized.' }
 
   // 1. Load container + items
   const { data: container } = await db
@@ -416,7 +475,7 @@ export async function executeAllocation(input: ExecuteAllocationInput): Promise<
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { success: false, error: 'Not authenticated.' }
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Unauthorized.' }
+  if (!can(adminUser?.role, 'allocate_container')) return { success: false, error: 'Unauthorized.' }
 
   if (!input.dealer_allocations.length && !input.kano_transfer.length) {
     return { success: false, error: 'No allocations specified.' }

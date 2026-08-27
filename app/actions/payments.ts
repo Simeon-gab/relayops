@@ -1,5 +1,6 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
@@ -38,7 +39,7 @@ export async function createPayment(
     .eq('id', user.id)
     .single()
 
-  if (adminUser?.role !== 'admin') {
+  if (!can(adminUser?.role, 'record_payments')) {
     return { success: false, error: 'Unauthorized — admin access required.' }
   }
 

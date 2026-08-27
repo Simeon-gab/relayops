@@ -1,5 +1,6 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
@@ -37,7 +38,7 @@ export async function createDealer(input: CreateDealerInput): Promise<CreateDeal
     .eq('id', user.id)
     .single()
 
-  if (adminUser?.role !== 'admin') {
+  if (!can(adminUser?.role, 'manage_dealers')) {
     return { success: false, error: 'Unauthorized — admin access required.' }
   }
 

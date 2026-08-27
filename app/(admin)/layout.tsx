@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isStaff } from '@/lib/auth/roles'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { NavLinks } from '@/components/admin/nav-links'
 import { MobileNav } from '@/components/admin/mobile-nav'
@@ -34,9 +35,11 @@ export default async function AdminLayout({
     redirect('/portal')
   }
 
-  if (profile.role !== 'admin') {
+  if (!isStaff(profile.role)) {
     redirect('/sign-in?error=invalid_role')
   }
+
+  const role = profile.role
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -47,7 +50,7 @@ export default async function AdminLayout({
         </div>
 
         <div className="flex-1 overflow-auto px-3 py-3">
-          <NavLinks />
+          <NavLinks role={role} />
         </div>
 
         <div className="border-t border-border px-4 py-3">
@@ -58,7 +61,7 @@ export default async function AdminLayout({
       {/* Main column: topbar + scrollable content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4">
-          <MobileNav />
+          <MobileNav role={role} />
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
             <NotificationsBell />
             <div className="mx-1 hidden h-4 w-px bg-border sm:block" />

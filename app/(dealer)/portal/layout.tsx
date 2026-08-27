@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isStaff } from '@/lib/auth/roles'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { DealerNavLinks } from '@/components/dealer/nav-links'
 import { DealerMobileNav } from '@/components/dealer/mobile-nav'
@@ -29,7 +30,7 @@ export default async function DealerLayout({
     redirect('/sign-in?error=no_role')
   }
 
-  if (profile.role === 'admin') {
+  if (isStaff(profile.role)) {
     redirect('/dashboard')
   }
 

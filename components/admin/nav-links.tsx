@@ -14,33 +14,57 @@ import {
   FileText,
   MessageSquare,
   Search,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { StaffRole } from '@/lib/auth/roles'
 
-const navItems = [
-  { label: 'Dashboard',  href: '/dashboard',     icon: LayoutDashboard },
-  { label: 'Containers', href: '/containers',     icon: Container },
-  { label: 'Orders',     href: '/dealer-orders',  icon: ClipboardList },
-  { label: 'Shipments',  href: '/shipments',      icon: Truck },
-  { label: 'Warehouses', href: '/warehouses',     icon: Warehouse },
-  { label: 'Products',   href: '/products',       icon: Bike },
-  { label: 'Dealers',    href: '/dealers',        icon: Users },
-  { label: 'Payments',   href: '/payments',       icon: Receipt },
-  { label: 'Receipts',   href: '/receipts',       icon: FileText },
-  { label: 'Messages',   href: '/messages',       icon: MessageSquare },
-  { label: 'Queries',    href: '/queries',        icon: Search },
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+  roles: readonly StaffRole[]
+}
+
+const ALL: readonly StaffRole[] = ['md', 'manager', 'partner']
+
+/**
+ * The nav is the main way each role's world is scoped. Nothing here is a
+ * security boundary — that lives in RLS and the capability checks — this
+ * just keeps each person's screen to what their job actually needs.
+ *
+ * The MD gets four items on purpose. The partner gets the physical chain
+ * and no pricing.
+ */
+const navItems: NavItem[] = [
+  { label: 'Dashboard',  href: '/dashboard',    icon: LayoutDashboard, roles: ALL },
+  { label: 'Containers', href: '/containers',   icon: Container,       roles: ['manager', 'partner'] },
+  { label: 'Orders',     href: '/dealer-orders', icon: ClipboardList,  roles: ['manager'] },
+  { label: 'Shipments',  href: '/shipments',    icon: Truck,           roles: ['manager', 'partner'] },
+  { label: 'Warehouses', href: '/warehouses',   icon: Warehouse,       roles: ['manager', 'partner'] },
+  { label: 'Products',   href: '/products',     icon: Bike,            roles: ['manager'] },
+  { label: 'Dealers',    href: '/dealers',      icon: Users,           roles: ['md', 'manager', 'partner'] },
+  { label: 'Payments',   href: '/payments',     icon: Receipt,         roles: ['md', 'manager'] },
+  { label: 'Receipts',   href: '/receipts',     icon: FileText,        roles: ['manager'] },
+  { label: 'Messages',   href: '/messages',     icon: MessageSquare,   roles: ['manager'] },
+  { label: 'Ask',        href: '/queries',      icon: Search,          roles: ALL },
 ]
 
+export function navItemsForRole(role: StaffRole): NavItem[] {
+  return navItems.filter((item) => item.roles.includes(role))
+}
+
 interface NavLinksProps {
+  role: StaffRole
   onNavigate?: () => void
 }
 
-export function NavLinks({ onNavigate }: NavLinksProps) {
+export function NavLinks({ role, onNavigate }: NavLinksProps) {
   const pathname = usePathname()
 
   return (
     <nav className="flex flex-col gap-0.5">
-      {navItems.map(({ label, href, icon: Icon }) => {
+      {navItemsForRole(role).map(({ label, href, icon: Icon }) => {
         const isActive = pathname === href || pathname.startsWith(href + '/')
         return (
           <Link

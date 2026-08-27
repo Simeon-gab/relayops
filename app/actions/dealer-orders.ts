@@ -1,5 +1,6 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
@@ -50,7 +51,7 @@ export async function createDealerOrder(
     .eq('id', user.id)
     .single()
 
-  if (adminUser?.role !== 'admin') {
+  if (!can(adminUser?.role, 'manage_orders')) {
     return { success: false, error: 'Unauthorized — admin access required.' }
   }
 
@@ -181,7 +182,7 @@ export async function updateOrderStatus(
     .eq('id', user.id)
     .single()
 
-  if (adminUser?.role !== 'admin') {
+  if (!can(adminUser?.role, 'manage_orders')) {
     return { success: false, error: 'Unauthorized — admin access required.' }
   }
 

@@ -1,5 +1,6 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Client } from 'pg'
@@ -10,7 +11,7 @@ async function getAdminUser() {
   const { data: { user } } = await db.auth.getUser()
   if (!user) return null
   const { data } = await db.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
+  if (!can(data?.role, 'manage_products')) return null
   return { db, user }
 }
 

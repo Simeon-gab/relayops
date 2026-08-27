@@ -1,12 +1,10 @@
 'use server'
 
+import { can } from '@/lib/auth/roles'
+import { generateBriefing } from '@/lib/ai/briefing'
 import { createClient } from '@/lib/supabase/server'
 import { callClaudeText } from '@/lib/ai/client'
 import { getNLQuerySystemPrompt, getNLQueryUserPrompt } from '@/lib/ai/prompts/nl-query'
-import {
-  getDailySummarySystemPrompt,
-  getDailySummaryUserPrompt,
-} from '@/lib/ai/prompts/daily-summary'
 import { fetchDailyMetrics, type DailySummaryMetrics } from '@/lib/db/daily-metrics'
 import { validateGeneratedSQL } from '@/lib/ai/sql-safety'
 import { executeReadOnlyQuery, type QueryResult } from '@/lib/db/nl-query-client'
@@ -38,7 +36,7 @@ export async function executeNLQuery(question: string): Promise<NLQueryResult> {
   if (!user) return { success: false, error: 'Not authenticated.' }
 
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return { success: false, error: 'Admin access required.' }
+  if (!can(adminUser?.role, 'run_queries')) return { success: false, error: 'You do not have access to queries.' }
 
   const q = question.trim()
   if (!q) return { success: false, error: 'Question is required.' }
@@ -123,40 +121,15 @@ export type DailySummarySuccess = {
 export type DailySummaryFailure = { success: false; error: string }
 export type DailySummaryResult = DailySummarySuccess | DailySummaryFailure
 
-// Shared Claude call — used by both generateDailySummary and generateDailySummaryFromMetrics
+// Shared Claude call — the briefing itself lives in lib/ai/briefing.ts so the
+// MD dashboard can render a cached copy without going through a server action.
 async function callDailySummaryAI(metrics: DailySummaryMetrics): Promise<DailySummarySuccess> {
-  const dateLabel = new Date().toLocaleDateString('en-NG', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  })
-
-  const raw = await callClaudeText(
-    getDailySummarySystemPrompt(),
-    getDailySummaryUserPrompt(metrics, dateLabel)
-  )
-
-  const jsonMatch = raw.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('No JSON in model response.')
-
-  const parsed = JSON.parse(jsonMatch[0]) as {
-    summary_text: string
-    key_metrics: {
-      shipments_dispatched_yesterday: number
-      payments_received_yesterday_naira: number
-      new_orders_yesterday: number
-      pending_review_items: number
-    }
-    items_needing_attention: {
-      type: string
-      description: string
-      severity: 'high' | 'medium' | 'low'
-    }[]
-  }
-
+  const briefing = await generateBriefing(metrics)
   return {
     success: true,
-    summary_text: parsed.summary_text,
-    key_metrics: parsed.key_metrics,
-    items_needing_attention: parsed.items_needing_attention ?? [],
+    summary_text: briefing.summary_text,
+    key_metrics: briefing.key_metrics,
+    items_needing_attention: briefing.items_needing_attention,
   }
 }
 
@@ -165,7 +138,7 @@ async function authAdmin() {
   const { data: { user } } = await db.auth.getUser()
   if (!user) return null
   const { data: adminUser } = await db.from('users').select('role').eq('id', user.id).single()
-  if (adminUser?.role !== 'admin') return null
+  if (!can(adminUser?.role, 'run_queries')) return null
   return user
 }
 

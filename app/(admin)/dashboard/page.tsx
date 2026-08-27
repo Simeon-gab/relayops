@@ -1,11 +1,77 @@
 import { Package, Truck, Receipt, AlertCircle, ClipboardList } from 'lucide-react'
 import { getDashboardStats } from '@/lib/db/dashboard-stats'
 import { fetchDailyMetrics } from '@/lib/db/daily-metrics'
+import { fetchPartnerView } from '@/lib/db/partner-view'
+import { getDailyBriefing } from '@/lib/ai/briefing'
+import { listPendingProposals, listAllPendingProposals } from '@/lib/db/ai-proposals'
+import { getStaffUser } from '@/lib/auth/roles'
+import { createClient } from '@/lib/supabase/server'
 import { StatCard } from '@/components/admin/stat-card'
 import { DailySummary } from '@/components/admin/daily-summary'
+import { DecisionQueue } from '@/components/admin/decision-queue'
+import { MdDashboard } from '@/components/admin/md-dashboard'
+import { PartnerDashboard } from '@/components/admin/partner-dashboard'
 
-export default async function DashboardPage() {
-  const [stats, metrics] = await Promise.all([getDashboardStats(), fetchDailyMetrics()])
+interface Props {
+  searchParams: Promise<{ view?: string }>
+}
+
+/**
+ * One route, three screens.
+ *
+ * The MD lands on a deliberately small page and the partner on the physical
+ * chain; managers get the full operational dashboard. `?view=full` lets the
+ * MD cross into the manager view on the same login, so the audit trail stays
+ * attached to one person rather than being split across two accounts.
+ */
+export default async function DashboardPage({ searchParams }: Props) {
+  const { view } = await searchParams
+  const db = await createClient()
+  const staff = await getStaffUser(db)
+
+  // The layout already rejected non-staff; this is a type narrowing.
+  const role = staff?.role ?? 'manager'
+
+  if (role === 'md' && view !== 'full') {
+    const [stats, metrics, proposals] = await Promise.all([
+      getDashboardStats(),
+      fetchDailyMetrics(),
+      listPendingProposals('md'),
+    ])
+    const briefing = await getDailyBriefing(metrics)
+
+    return (
+      <MdDashboard
+        briefing={briefing}
+        metrics={metrics}
+        stats={stats}
+        proposals={proposals}
+        displayName={staff?.display_name ?? null}
+      />
+    )
+  }
+
+  if (role === 'partner') {
+    const [partnerView, proposals] = await Promise.all([
+      fetchPartnerView(),
+      listPendingProposals('partner'),
+    ])
+
+    return (
+      <PartnerDashboard
+        view={partnerView}
+        proposals={proposals}
+        displayName={staff?.display_name ?? null}
+      />
+    )
+  }
+
+  // Manager (and the MD's "full system" view).
+  const [stats, metrics, proposals] = await Promise.all([
+    getDashboardStats(),
+    fetchDailyMetrics(),
+    listAllPendingProposals(),
+  ])
 
   return (
     <div className="px-8 py-8">
@@ -15,6 +81,12 @@ export default async function DashboardPage() {
       </div>
 
       <DailySummary metrics={metrics} />
+
+      <DecisionQueue
+        proposals={proposals}
+        title="Agent proposals"
+        emptyMessage="No proposals waiting — the agents have nothing queued."
+      />
 
       {/* Top row: 3 cards */}
       <div className="grid gap-4 sm:grid-cols-3">
