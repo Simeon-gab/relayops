@@ -3,12 +3,13 @@ import { getDashboardStats } from '@/lib/db/dashboard-stats'
 import { fetchDailyMetrics } from '@/lib/db/daily-metrics'
 import { fetchPartnerView } from '@/lib/db/partner-view'
 import { getDailyBriefing } from '@/lib/ai/briefing'
-import { listPendingProposals, listAllPendingProposals } from '@/lib/db/ai-proposals'
+import { listPendingProposals, listAllPendingProposals, listRecentAgentRuns } from '@/lib/db/ai-proposals'
 import { getStaffUser } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { StatCard } from '@/components/admin/stat-card'
 import { DailySummary } from '@/components/admin/daily-summary'
 import { DecisionQueue } from '@/components/admin/decision-queue'
+import { AgentActivity } from '@/components/admin/agent-activity'
 import { MdDashboard } from '@/components/admin/md-dashboard'
 import { PartnerDashboard } from '@/components/admin/partner-dashboard'
 
@@ -67,10 +68,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   // Manager (and the MD's "full system" view).
-  const [stats, metrics, proposals] = await Promise.all([
+  const [stats, metrics, proposals, agentRuns] = await Promise.all([
     getDashboardStats(),
     fetchDailyMetrics(),
     listAllPendingProposals(),
+    listRecentAgentRuns(8),
   ])
 
   return (
@@ -87,6 +89,8 @@ export default async function DashboardPage({ searchParams }: Props) {
         title="Agent proposals"
         emptyMessage="No proposals waiting — the agents have nothing queued."
       />
+
+      <AgentActivity runs={agentRuns} />
 
       {/* Top row: 3 cards */}
       <div className="grid gap-4 sm:grid-cols-3">

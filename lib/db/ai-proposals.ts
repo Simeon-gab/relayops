@@ -165,10 +165,17 @@ export async function getProposal(id: string): Promise<AiProposal | null> {
   }
 }
 
+/** The statuses a proposal can be closed with. 'superseded' is not one: that is
+ *  the system replacing its own suggestion, not anybody deciding anything. */
+export type ResolvedStatus = Extract<
+  ProposalStatus,
+  'approved' | 'rejected' | 'failed' | 'auto_executed'
+>
+
 /** Mark a proposal decided. Called after the underlying action succeeds. */
 export async function resolveProposal(
   id: string,
-  status: Extract<ProposalStatus, 'approved' | 'rejected' | 'failed' | 'auto_executed'>,
+  status: ResolvedStatus,
   reviewedBy: string | null,
   error?: string
 ): Promise<boolean> {
@@ -177,6 +184,7 @@ export async function resolveProposal(
     .from('ai_proposals')
     .update({
       status,
+      auto_executed: status === 'auto_executed',
       reviewed_by: reviewedBy,
       reviewed_at: new Date().toISOString(),
       error: error ?? null,
@@ -188,6 +196,86 @@ export async function resolveProposal(
     return false
   }
   return true
+}
+
+/**
+ * Close whatever proposal was open about one thing.
+ *
+ * The review screens act on the subject — a container, a message, a receipt —
+ * and have no reason to know a proposal id, so the lookup happens here on the
+ * (subject_type, subject_id, status) index. Without this call the queue keeps
+ * showing work that is already done.
+ *
+ * Best-effort by design: a proposal that cannot be closed must not fail the
+ * allocation or payment that was the actual point of the click.
+ */
+export async function resolveProposalForSubject(input: {
+  kind: ProposalKind
+  subjectType: string
+  subjectId: string
+  status: ResolvedStatus
+  reviewedBy: string | null
+  error?: string
+}): Promise<void> {
+  try {
+    const db = createAdminClient()
+    const { error } = await db
+      .from('ai_proposals')
+      .update({
+        status: input.status,
+        auto_executed: input.status === 'auto_executed',
+        reviewed_by: input.reviewedBy,
+        reviewed_at: new Date().toISOString(),
+        error: input.error ?? null,
+      })
+      .eq('kind', input.kind)
+      .eq('subject_type', input.subjectType)
+      .eq('subject_id', input.subjectId)
+      .eq('status', 'pending')
+
+    if (error) console.error('[ai_proposals] subject resolve failed:', error.message)
+  } catch (err) {
+    console.error('[ai_proposals] subject resolve failed:', err instanceof Error ? err.message : err)
+  }
+}
+
+/**
+ * Retire alerts that no longer describe reality.
+ *
+ * The watchdog re-raises what it finds each night, and createProposal supersedes
+ * the previous raise about the same subject. What it cannot do is speak about a
+ * subject it no longer finds: a product that has been restocked stops appearing
+ * in the sweep, so its "running low" line would otherwise sit in the queue for
+ * good. After each sweep the surviving subjects are passed here and everything
+ * else of that kind is closed.
+ */
+export async function supersedeStaleAlerts(
+  kind: ProposalKind,
+  liveSubjectIds: string[]
+): Promise<number> {
+  try {
+    const db = createAdminClient()
+    let query = db
+      .from('ai_proposals')
+      .update({ status: 'superseded' })
+      .eq('kind', kind)
+      .eq('status', 'pending')
+
+    if (liveSubjectIds.length) {
+      // PostgREST wants the list bracketed for a negated `in`.
+      query = query.not('subject_id', 'in', `(${liveSubjectIds.join(',')})`)
+    }
+
+    const { data, error } = await query.select('id')
+    if (error) {
+      console.error('[ai_proposals] stale sweep failed:', error.message)
+      return 0
+    }
+    return data?.length ?? 0
+  } catch (err) {
+    console.error('[ai_proposals] stale sweep failed:', err instanceof Error ? err.message : err)
+    return 0
+  }
 }
 
 export async function countPendingProposals(audience: ProposalAudience): Promise<number> {

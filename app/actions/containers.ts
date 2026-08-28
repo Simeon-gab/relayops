@@ -8,7 +8,7 @@ import { callClaudeText } from '@/lib/ai/client'
 import { getAllocationSystemPrompt, getAllocationUserPrompt } from '@/lib/ai/prompts/allocation-suggestion'
 import { notifyAllAdmins } from '@/lib/notifications'
 import { emitAllocationProposal } from '@/lib/agents/emit'
-import { logAgentRun } from '@/lib/db/ai-proposals'
+import { logAgentRun, resolveProposalForSubject } from '@/lib/db/ai-proposals'
 
 const LAGOS_WAREHOUSE_ID = '00000000-0000-0000-0001-000000000001'
 const KANO_WAREHOUSE_ID = '00000000-0000-0000-0001-000000000002'
@@ -631,6 +631,15 @@ export async function executeAllocation(input: ExecuteAllocationInput): Promise<
   } finally {
     await client.end()
   }
+
+  // The container is split; the suggestion that proposed the split is spent.
+  await resolveProposalForSubject({
+    kind: 'container_allocation',
+    subjectType: 'container',
+    subjectId: input.container_id,
+    status: 'approved',
+    reviewedBy: user.id,
+  })
 
   revalidatePath(`/containers/${input.container_id}`)
   revalidatePath('/containers')

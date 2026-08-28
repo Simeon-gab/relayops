@@ -34,11 +34,28 @@ export interface OrderProposalInput {
   itemCount: number
   itemSummary: string
   startedAt: number
+  /**
+   * Lowest per-line confidence in the extraction — the weakest product match or
+   * quantity read. Null when the message asks for nothing orderable. Pass 0 when
+   * a line could not be matched to a product at all.
+   */
+  itemConfidence?: number | null
 }
 
 export async function emitOrderProposal(input: OrderProposalInput): Promise<EmitResult> {
   try {
-    const decision = decideAutonomy({ kind: 'order_from_message', confidence: input.confidence })
+    // An order is only as right as its least certain line, so that is what the
+    // policy is asked about. The stored confidence stays the parse's own — the
+    // queue should show what the model said about the message, not our maths.
+    const effectiveConfidence =
+      input.itemConfidence != null
+        ? Math.min(input.confidence, input.itemConfidence)
+        : input.confidence
+
+    const decision = decideAutonomy({
+      kind: 'order_from_message',
+      confidence: effectiveConfidence,
+    })
 
     const summary =
       input.itemCount > 0
@@ -68,7 +85,12 @@ export async function emitOrderProposal(input: OrderProposalInput): Promise<Emit
       ai_model: AI_MODEL,
     })
 
-    return { proposalId, autoExecute: decision.action === 'auto_execute' }
+    // Nothing to execute unattended when there are no lines to order — a
+    // "when is my delivery" read at 95% is still a question for a person.
+    return {
+      proposalId,
+      autoExecute: decision.action === 'auto_execute' && input.itemCount > 0,
+    }
   } catch (err) {
     console.error('[emit] order proposal failed:', err instanceof Error ? err.message : err)
     return NOTHING

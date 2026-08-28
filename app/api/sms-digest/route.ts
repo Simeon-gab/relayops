@@ -1,5 +1,5 @@
-import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertCronRequest } from '@/lib/cron-auth'
 import { sendAdminSms } from '@/lib/sms'
 
 // Must run at request time (queries live data, sends SMS).
@@ -11,13 +11,8 @@ export const dynamic = 'force-dynamic'
  * the scheduler can trigger it.
  */
 export async function GET() {
-  const secret = process.env.CRON_SECRET
-  if (secret) {
-    const authHeader = (await headers()).get('authorization')
-    if (authHeader !== `Bearer ${secret}`) {
-      return Response.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-    }
-  }
+  const refusal = await assertCronRequest()
+  if (refusal) return refusal
 
   const db = createAdminClient()
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()

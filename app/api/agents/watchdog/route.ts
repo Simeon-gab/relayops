@@ -1,7 +1,7 @@
-import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertCronRequest } from '@/lib/cron-auth'
 import { emitAlert } from '@/lib/agents/emit'
-import { logAgentRun } from '@/lib/db/ai-proposals'
+import { logAgentRun, supersedeStaleAlerts } from '@/lib/db/ai-proposals'
 import { WATCHDOG } from '@/lib/policy'
 import { formatNaira } from '@/lib/utils/format'
 
@@ -16,7 +16,11 @@ export const dynamic = 'force-dynamic'
  * found rather than with someone hunting for them.
  *
  * Re-raising is safe. createProposal supersedes an earlier pending alert about
- * the same subject, so a nightly run refreshes rather than piles up.
+ * the same subject, so a nightly run refreshes rather than piles up — and each
+ * sweep returns the subjects it still finds, so alerts that have stopped being
+ * true (restocked, confirmed, paid down) are retired in the same pass.
+ *
+ * Each sweep returns the ids it raised on.
  */
 
 interface Raised {
@@ -25,7 +29,7 @@ interface Raised {
   credit: number
 }
 
-async function sweepLowStock(db: ReturnType<typeof createAdminClient>): Promise<number> {
+async function sweepLowStock(db: ReturnType<typeof createAdminClient>): Promise<string[]> {
   const { data, error } = await db
     .from('warehouse_stock')
     .select('quantity, warehouses(code, name), products(id, sku_code, display_name, active, deleted_at)')
@@ -33,37 +37,51 @@ async function sweepLowStock(db: ReturnType<typeof createAdminClient>): Promise<
 
   if (error) throw error
 
+  type Product = { id: string; sku_code: string; display_name: string; active: boolean; deleted_at: string | null }
   type Row = {
     quantity: number
     warehouses: { code: string; name: string } | null
-    products: { id: string; sku_code: string; display_name: string; active: boolean; deleted_at: string | null } | null
+    products: Product | null
   }
 
-  let raised = 0
+  // Grouped by product rather than by shelf. A proposal is keyed by its subject,
+  // so a bike low in both warehouses raised twice would supersede itself and
+  // leave one warehouse's shortage invisible — and restocking is one decision
+  // about one product anyway.
+  const byProduct = new Map<string, { product: Product; places: { where: string; quantity: number }[] }>()
+
   for (const row of (data ?? []) as unknown as Row[]) {
     const p = row.products
     if (!p || !p.active || p.deleted_at) continue
 
     const where = row.warehouses?.name ?? row.warehouses?.code ?? 'a warehouse'
+    const entry = byProduct.get(p.id) ?? { product: p, places: [] }
+    entry.places.push({ where, quantity: row.quantity })
+    byProduct.set(p.id, entry)
+  }
+
+  const raised: string[] = []
+  for (const { product, places } of byProduct.values()) {
+    const phrase = places
+      .map((s) => (s.quantity === 0 ? `out of stock in ${s.where}` : `down to ${s.quantity} in ${s.where}`))
+      .join(', and ')
+
     await emitAlert({
       kind: 'stock_alert',
       subjectType: 'product',
-      subjectId: p.id,
+      subjectId: product.id,
       // The partner decides what goes in the next container, so running low
       // is his signal before it is anyone else's.
       audience: 'partner',
-      summary:
-        row.quantity === 0
-          ? `${p.display_name} is out of stock in ${where}.`
-          : `${p.display_name} is down to ${row.quantity} in ${where}.`,
-      detail: { sku_code: p.sku_code, quantity: row.quantity, warehouse: where },
+      summary: `${product.display_name} is ${phrase}.`,
+      detail: { sku_code: product.sku_code, low_at: places },
     })
-    raised++
+    raised.push(product.id)
   }
   return raised
 }
 
-async function sweepOverdue(db: ReturnType<typeof createAdminClient>): Promise<number> {
+async function sweepOverdue(db: ReturnType<typeof createAdminClient>): Promise<string[]> {
   const cutoff = new Date(
     Date.now() - WATCHDOG.OVERDUE_SHIPMENT_DAYS * 86_400_000
   ).toISOString()
@@ -84,7 +102,7 @@ async function sweepOverdue(db: ReturnType<typeof createAdminClient>): Promise<n
     dealers: { business_name: string } | null
   }
 
-  let raised = 0
+  const raised: string[] = []
   for (const s of (data ?? []) as unknown as Row[]) {
     const days = Math.floor((Date.now() - new Date(s.dispatched_at).getTime()) / 86_400_000)
     const who = s.dealers?.business_name ?? 'A dealer'
@@ -96,12 +114,12 @@ async function sweepOverdue(db: ReturnType<typeof createAdminClient>): Promise<n
       summary: `${who}${s.destination_city ? ` in ${s.destination_city}` : ''} has not confirmed a shipment sent ${days} days ago.`,
       detail: { days_out: days },
     })
-    raised++
+    raised.push(s.id)
   }
   return raised
 }
 
-async function sweepCredit(db: ReturnType<typeof createAdminClient>): Promise<number> {
+async function sweepCredit(db: ReturnType<typeof createAdminClient>): Promise<string[]> {
   const { data: dealers, error } = await db
     .from('dealers')
     .select('id, business_name, credit_limit_naira')
@@ -112,7 +130,7 @@ async function sweepCredit(db: ReturnType<typeof createAdminClient>): Promise<nu
   if (error) throw error
 
   type Dealer = { id: string; business_name: string; credit_limit_naira: number }
-  let raised = 0
+  const raised: string[] = []
 
   for (const d of (dealers ?? []) as Dealer[]) {
     const { data: shipments } = await db
@@ -141,30 +159,37 @@ async function sweepCredit(db: ReturnType<typeof createAdminClient>): Promise<nu
       valueNaira: outstanding,
       detail: { outstanding, limit },
     })
-    raised++
+    raised.push(d.id)
   }
   return raised
 }
 
 export async function GET() {
-  const secret = process.env.CRON_SECRET
-  if (secret) {
-    const authHeader = (await headers()).get('authorization')
-    if (authHeader !== `Bearer ${secret}`) {
-      return Response.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-    }
-  }
+  const refusal = await assertCronRequest()
+  if (refusal) return refusal
 
   const startedAt = Date.now()
   const db = createAdminClient()
   const raised: Raised = { stock: 0, overdue: 0, credit: 0 }
+  const cleared: Raised = { stock: 0, overdue: 0, credit: 0 }
 
   try {
     // Sequential on purpose: three small sweeps against one small database,
     // and a failure in one should not hide the others' results.
-    raised.stock = await sweepLowStock(db)
-    raised.overdue = await sweepOverdue(db)
-    raised.credit = await sweepCredit(db)
+    const stock = await sweepLowStock(db)
+    const overdue = await sweepOverdue(db)
+    const credit = await sweepCredit(db)
+
+    raised.stock = stock.length
+    raised.overdue = overdue.length
+    raised.credit = credit.length
+
+    // Anything still queued that this sweep no longer found has stopped being
+    // true. Retiring it here is what keeps the morning queue a list of live
+    // problems rather than an archive of solved ones.
+    cleared.stock = await supersedeStaleAlerts('stock_alert', stock)
+    cleared.overdue = await supersedeStaleAlerts('overdue_alert', overdue)
+    cleared.credit = await supersedeStaleAlerts('credit_alert', credit)
 
     await logAgentRun({
       agent: 'watchdog',
@@ -173,7 +198,7 @@ export async function GET() {
       duration_ms: Date.now() - startedAt,
     })
 
-    return Response.json({ ok: true, raised })
+    return Response.json({ ok: true, raised, cleared })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error.'
     console.error('[watchdog] failed:', message)

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import type { AiProposal, ProposalKind } from '@/lib/db/ai-proposals'
+import { timeAgo } from '@/lib/utils/format'
 
 /**
  * The one interactive block on the MD and partner dashboards.
@@ -32,7 +33,13 @@ const KIND_TONE: Record<ProposalKind, string> = {
   credit_alert:         'bg-red-50 text-red-700 border-red-200',
 }
 
-/** Where a proposal is acted on. Reuses the review screens that already exist. */
+/**
+ * Where a proposal is acted on. Reuses the review screens that already exist.
+ *
+ * Each branch has to match the subject the emitter actually recorded — a credit
+ * alert is about a dealer, a stock alert about a product — or the queue's one
+ * button lands on a page that cannot exist.
+ */
 function reviewHref(p: AiProposal): string {
   switch (p.kind) {
     case 'container_allocation':
@@ -45,23 +52,13 @@ function reviewHref(p: AiProposal): string {
     case 'overdue_alert':
       return p.subject_id ? `/shipments/${p.subject_id}` : '/shipments'
     case 'credit_alert':
-      return p.subject_id ? `/dealer-orders/${p.subject_id}` : '/dealer-orders'
+      return p.subject_id ? `/dealers/${p.subject_id}` : '/dealers'
     case 'stock_alert':
-      return '/warehouses'
+      // The product page carries stock by warehouse, which is the question.
+      return p.subject_id ? `/products/${p.subject_id}` : '/warehouses'
     case 'next_container_load':
       return '/containers/new'
   }
-}
-
-function timeAgo(iso: string): string {
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days <= 14) return `${days}d ago`
-  return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })
 }
 
 interface Props {

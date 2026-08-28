@@ -12,7 +12,7 @@ import { getDispatchDraftingSystemPrompt, getDispatchDraftingUserPrompt, type Di
 import { getDealerRecentOrders } from '@/lib/db/messages'
 import { notifyAllAdmins } from '@/lib/notifications'
 import { emitOrderProposal } from '@/lib/agents/emit'
-import { logAgentRun } from '@/lib/db/ai-proposals'
+import { logAgentRun, resolveProposal, resolveProposalForSubject } from '@/lib/db/ai-proposals'
 import { AI_MODEL } from '@/lib/ai/client'
 
 const VALID_CHANNELS = ['dealer_portal', 'whatsapp', 'sms'] as const
@@ -329,11 +329,7 @@ async function parseAndPropose(messageId: string, dealerName: string): Promise<v
       .eq('id', parsed.parseResultId)
       .single()
 
-    const extracted = (row?.extracted_data ?? {}) as {
-      order_data?: {
-        items?: Array<{ quantity?: number; resolved_product_name?: string | null; description_in_message?: string }>
-      }
-    }
+    const extracted = (row?.extracted_data ?? {}) as { order_data?: { items?: ParsedOrderItem[] } }
     const items = extracted.order_data?.items ?? []
 
     const itemSummary = items
@@ -341,7 +337,15 @@ async function parseAndPropose(messageId: string, dealerName: string): Promise<v
       .map((i) => `${i.quantity ?? '?'} × ${i.resolved_product_name ?? i.description_in_message ?? 'unclear item'}`)
       .join(', ')
 
-    await emitOrderProposal({
+    // Every line has to land on a real catalogue product before the policy is
+    // asked anything. A line the catalogue does not recognise scores zero,
+    // which is below any floor — so a half-understood order always goes to a
+    // person, however sure the model was about the message as a whole.
+    const resolved = await resolveOrderItems(items)
+    const allResolved = items.length > 0 && resolved.every((i) => i !== null)
+    const itemConfidence = items.length === 0 ? null : allResolved ? lineConfidence(items) : 0
+
+    const { proposalId, autoExecute } = await emitOrderProposal({
       messageId,
       dealerName,
       parseResultId: parsed.parseResultId,
@@ -349,8 +353,16 @@ async function parseAndPropose(messageId: string, dealerName: string): Promise<v
       confidence: parsed.confidence,
       itemCount: items.length,
       itemSummary: items.length > 3 ? `${itemSummary} and ${items.length - 3} more` : itemSummary,
+      itemConfidence,
       startedAt,
     })
+
+    // The intent gate is deliberate belt-and-braces: the prompt asks for
+    // order_data only on an order, but a payment notice that happens to mention
+    // two bikes must never become an order without somebody reading it.
+    if (autoExecute && proposalId && allResolved && parsed.intent === 'order_request') {
+      await autoCreateOrder(messageId, proposalId, resolved as ConvertOrderItem[], startedAt)
+    }
   } catch (err) {
     console.error('[agent] message parsing failed:', err instanceof Error ? err.message : err)
     await logAgentRun({
@@ -363,6 +375,106 @@ async function parseAndPropose(messageId: string, dealerName: string): Promise<v
       error: err instanceof Error ? err.message : 'unknown',
     })
   }
+}
+
+/** One order line as the parser returns it. */
+interface ParsedOrderItem {
+  quantity?: number
+  resolved_sku?: string | null
+  resolved_product_name?: string | null
+  description_in_message?: string
+  match_confidence?: number
+  quantity_confidence?: number
+}
+
+/** The weakest reading across all lines: the right SKU at the wrong quantity is
+ *  still a wrong order, so both confidences count and the lowest one wins. */
+function lineConfidence(items: ParsedOrderItem[]): number {
+  return Math.min(
+    ...items.map((i) => Math.min(i.match_confidence ?? 0, i.quantity_confidence ?? 0))
+  )
+}
+
+/**
+ * Turn parsed lines into order lines, index-aligned with the input.
+ *
+ * A line is null when its SKU is missing, unknown to the catalogue, retired, or
+ * its quantity is not a positive whole number. The caller treats any null as
+ * "this one needs a person".
+ */
+async function resolveOrderItems(items: ParsedOrderItem[]): Promise<(ConvertOrderItem | null)[]> {
+  if (!items.length) return []
+
+  const skus = [...new Set(items.map((i) => i.resolved_sku).filter((s): s is string => !!s))]
+  if (!skus.length) return items.map(() => null)
+
+  const db = createAdminClient()
+  const { data: products } = await db
+    .from('products')
+    .select('id, sku_code')
+    .in('sku_code', skus)
+    .eq('active', true)
+    .is('deleted_at', null)
+
+  const idBySku = new Map(
+    ((products ?? []) as Array<{ id: string; sku_code: string }>).map((p) => [p.sku_code, p.id])
+  )
+
+  return items.map((item) => {
+    const productId = item.resolved_sku ? idBySku.get(item.resolved_sku) : undefined
+    const quantity = item.quantity ?? 0
+    if (!productId || !Number.isInteger(quantity) || quantity < 1) return null
+    return {
+      product_id: productId,
+      quantity,
+      description: item.description_in_message ?? item.resolved_product_name ?? '',
+    }
+  })
+}
+
+/**
+ * The one thing the agents may do without being asked.
+ *
+ * A draft order records intent — it moves no stock and no money, and a manager
+ * cancels it in one click — which is why `lib/policy.ts` lets it through when
+ * every line is certain. Everything else in the system still waits for a human.
+ *
+ * The proposal is closed either way: executed, or left recorded as failed with
+ * the reason, so a silent miss cannot look like nothing ever happened.
+ */
+async function autoCreateOrder(
+  messageId: string,
+  proposalId: string,
+  items: ConvertOrderItem[],
+  startedAt: number
+): Promise<void> {
+  const result = await runConvertParseToOrder(messageId, items, 'auto_executed')
+
+  if (result.success) {
+    await logAgentRun({
+      agent: 'auto_order',
+      trigger: 'event',
+      subject_type: 'dealer_order',
+      subject_id: result.orderId,
+      ok: true,
+      duration_ms: Date.now() - startedAt,
+      proposal_id: proposalId,
+      ai_model: AI_MODEL,
+    })
+    return
+  }
+
+  await resolveProposal(proposalId, 'failed', null, result.error)
+  await logAgentRun({
+    agent: 'auto_order',
+    trigger: 'event',
+    subject_type: 'message',
+    subject_id: messageId,
+    ok: false,
+    duration_ms: Date.now() - startedAt,
+    proposal_id: proposalId,
+    error: result.error,
+  })
 }
 
 // ─── convertParseToOrder ──────────────────────────────────────────────────────
@@ -380,6 +492,17 @@ export type ConvertParseResult =
 export async function convertParseToOrder(
   messageId: string,
   items: ConvertOrderItem[]
+): Promise<ConvertParseResult> {
+  // The exported action is always a person clicking approve. The unattended
+  // path calls the core below directly, so how a proposal is recorded can never
+  // be chosen by whoever is on the other end of the request.
+  return runConvertParseToOrder(messageId, items, 'approved')
+}
+
+async function runConvertParseToOrder(
+  messageId: string,
+  items: ConvertOrderItem[],
+  resolution: 'approved' | 'auto_executed'
 ): Promise<ConvertParseResult> {
   const db = await createClient()
   const { data: { user } } = await db.auth.getUser()
@@ -417,7 +540,13 @@ export async function convertParseToOrder(
          (dealer_id, status, requested_at, notes, source, source_message_id)
        VALUES ($1, 'pending', now(), $2, 'ai_parsed_message', $3)
        RETURNING id`,
-      [dealerId, `Created from AI parse of inbound message`, messageId]
+      [
+        dealerId,
+        resolution === 'auto_executed'
+          ? 'Raised automatically from a parsed message — not yet reviewed'
+          : 'Created from AI parse of inbound message',
+        messageId,
+      ]
     )
     orderId = orderRes.rows[0].id
 
@@ -430,10 +559,18 @@ export async function convertParseToOrder(
       )
     }
 
+    // An unattended order is the agent's own act: no user id, actor 'agent',
+    // which is what migration 0015 widened the audit log to record.
+    const unattended = resolution === 'auto_executed'
     await pgClient.query(
-      `INSERT INTO audit_log (user_id, action, entity_type, entity_id, changes)
-       VALUES ($1,'order_created_from_parse','dealer_order',$2,$3)`,
-      [user.id, orderId, JSON.stringify({ message_id: messageId, item_count: items.length })]
+      `INSERT INTO audit_log (user_id, actor, action, entity_type, entity_id, changes)
+       VALUES ($1,$2,'order_created_from_parse','dealer_order',$3,$4)`,
+      [
+        unattended ? null : user.id,
+        unattended ? 'agent' : 'user',
+        orderId,
+        JSON.stringify({ message_id: messageId, item_count: items.length, unattended }),
+      ]
     )
 
     await pgClient.query('COMMIT')
@@ -443,6 +580,15 @@ export async function convertParseToOrder(
   } finally {
     await pgClient.end()
   }
+
+  // The message's proposal is now spent — whoever asked for it got it.
+  await resolveProposalForSubject({
+    kind: 'order_from_message',
+    subjectType: 'message',
+    subjectId: messageId,
+    status: resolution,
+    reviewedBy: resolution === 'auto_executed' ? null : user.id,
+  })
 
   revalidatePath(`/messages/${messageId}`)
   revalidatePath(`/dealers/${dealerId}`)
@@ -455,10 +601,19 @@ export async function convertParseToOrder(
     .eq('id', dealerId)
     .single()
 
+  // An order raised without anybody asking has to announce itself loudly —
+  // unattended work is only acceptable while it stays visible.
+  const dealerLabel = dealerNameRow?.business_name ?? 'dealer'
   notifyAllAdmins({
     eventType: 'order_created',
-    title: `[AI parsed] New order from ${dealerNameRow?.business_name ?? 'dealer'}`,
-    description: `${items.length} item(s) extracted from message`,
+    title:
+      resolution === 'auto_executed'
+        ? `[Auto] Order raised for ${dealerLabel}`
+        : `[AI parsed] New order from ${dealerLabel}`,
+    description:
+      resolution === 'auto_executed'
+        ? `${items.length} item(s) read from the message and raised without review — cancel it if it is wrong`
+        : `${items.length} item(s) extracted from message`,
     entityType: 'order',
     entityId: orderId,
   }).catch((err) => console.error('[notifications] broadcast failed:', err))
@@ -501,7 +656,17 @@ export async function rejectParseResult(
     await pgClient.end()
   }
 
+  // Dismissing the parse dismisses what the agent wanted to do with it.
+  await resolveProposalForSubject({
+    kind: 'order_from_message',
+    subjectType: 'message',
+    subjectId: row.message_id,
+    status: 'rejected',
+    reviewedBy: user.id,
+  })
+
   revalidatePath(`/messages/${row.message_id}`)
+  revalidatePath('/dashboard')
 
   return { success: true }
 }

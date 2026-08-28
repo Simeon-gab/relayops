@@ -6,6 +6,7 @@ import { Client } from 'pg'
 import { revalidatePath } from 'next/cache'
 import type { ExtractionResult, CreatePaymentFromReceiptInput } from '@/types/receipts'
 import { runExtractionForReceipt } from '@/lib/receipts/extract'
+import { resolveProposalForSubject } from '@/lib/db/ai-proposals'
 
 async function getAdminUser() {
   const db = await createClient()
@@ -124,6 +125,15 @@ export async function createPaymentFromReceipt(
   } finally {
     await client.end()
   }
+
+  // Money confirmed by a person — the proposal that asked for it is answered.
+  await resolveProposalForSubject({
+    kind: 'payment_from_receipt',
+    subjectType: 'receipt',
+    subjectId: receiptId,
+    status: 'approved',
+    reviewedBy: admin.user.id,
+  })
 
   if (rec.message_id) revalidatePath(`/messages/${rec.message_id}`)
   revalidatePath('/messages')

@@ -1,5 +1,5 @@
-import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertCronRequest } from '@/lib/cron-auth'
 
 // Never prerender: this must actually hit the database on every invocation
 // so the request counts as activity and resets Supabase's free-tier idle timer.
@@ -16,14 +16,8 @@ export const dynamic = 'force-dynamic'
  * It writes nothing and touches no application state.
  */
 export async function GET() {
-  // If CRON_SECRET is configured, only allow Vercel Cron (which sends it) to run this.
-  const secret = process.env.CRON_SECRET
-  if (secret) {
-    const authHeader = (await headers()).get('authorization')
-    if (authHeader !== `Bearer ${secret}`) {
-      return Response.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-    }
-  }
+  const refusal = await assertCronRequest()
+  if (refusal) return refusal
 
   const supabase = createAdminClient()
   const { error, count } = await supabase
