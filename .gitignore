@@ -44,3 +44,7 @@ next-env.d.ts
 .claude/
 # dealer credential exports (plaintext passwords)
 dealer-logins*.csv
+
+# real business data drops (dealer phone numbers, cost prices) — never committed
+/data/*
+!/data/README.md

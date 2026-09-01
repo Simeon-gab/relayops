@@ -31,8 +31,9 @@
  * Re-running is safe. A dealer who already has a login is skipped, not reset —
  * use `create-staff-user.mjs --set-password` to change an existing password.
  *
- * The credentials CSV holds plaintext passwords. It is written to the project
- * root, which .gitignore does not cover, so delete it once the logins are sent.
+ * The credentials CSV holds plaintext passwords. .gitignore keeps it out of the
+ * repo, but that only stops it being committed — it still sits in plaintext on
+ * disk, so delete it once the logins are sent.
  *
  * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local.
  */

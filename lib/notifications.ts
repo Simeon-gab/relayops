@@ -51,7 +51,10 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
     const { data: admins, error } = await admin
       .from('users')
       .select('id, email')
-      .in('role', ['md', 'manager'])
+      // Partner sits alongside md/manager here deliberately: they are an owner
+      // of the operation, not a spectator, and were silently excluded from both
+      // the in-app feed and the summary email until now.
+      .in('role', ['md', 'partner', 'manager'])
 
     if (error || !admins?.length) return
 
@@ -71,7 +74,7 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
     const adminEmails = (admins as Array<{ email: string | null }>)
       .map((u) => u.email)
       .filter((e): e is string => !!e)
-    await sendAdminSummaryEmail(
+    const email = await sendAdminSummaryEmail(
       {
         subject: `RelayOps: ${input.title}`,
         title: input.title,
@@ -82,11 +85,25 @@ export async function notifyAllAdmins(input: BroadcastNotificationInput): Promis
       },
       adminEmails
     )
+    // 'not_configured' and 'no_recipient' are deliberate states, not faults.
+    if (!email.ok && email.reason !== 'not_configured' && email.reason !== 'no_recipient') {
+      console.error(
+        `[notifications] email for ${input.eventType} failed: ${email.reason}${email.detail ? ` — ${email.detail}` : ''}`
+      )
+    }
 
     // Real-time SMS for important events only (best-effort; no-ops if unset).
+    // The send never blocks the event, but a rejection is logged rather than
+    // swallowed — a dead SMS channel should not look like a quiet one.
     if (IMPORTANT_SMS_EVENTS.has(input.eventType)) {
       const smsText = `RelayOps: ${input.title}${input.description ? ` — ${input.description}` : ''}`
-      await sendAdminSms(smsText)
+      const sms = await sendAdminSms(smsText)
+      if (sms.failures.length) {
+        const reasons = sms.failures.map((f) => `${f.to} ${f.reason}`).join('; ')
+        console.error(
+          `[notifications] SMS for ${input.eventType} failed for ${sms.failures.length}/${sms.attempted}: ${reasons}`
+        )
+      }
     }
   } catch (err) {
     console.error('[notifications] unexpected error:', err)

@@ -9,6 +9,11 @@ export const dynamic = 'force-dynamic'
  * Daily SMS digest. A Vercel cron (see vercel.json) calls this once a day; it
  * summarizes the last 24 hours in one text. Protected by CRON_SECRET so only
  * the scheduler can trigger it.
+ *
+ * Delivery is reported, not assumed. Composing the text is the easy half; the
+ * route's actual job is getting it onto a phone, so a run where every send was
+ * rejected answers 502 and names the reason rather than returning a green
+ * `ok: true` that looks exactly like a successful one.
  */
 export async function GET() {
   const refusal = await assertCronRequest()
@@ -54,11 +59,37 @@ export async function GET() {
     `${paymentCount} payment${paymentCount === 1 ? '' : 's'} (N${naira(paymentSum)}). ` +
     `${pendingOrders} pending, ${receiptsToReview} receipt${receiptsToReview === 1 ? '' : 's'} to review.`
 
-  await sendAdminSms(text)
+  const sms = await sendAdminSms(text)
 
-  return Response.json({
-    ok: true,
-    sent: text,
-    stats: { newOrders, paymentCount, paymentSum, pendingOrders, receiptsToReview },
-  })
+  if (sms.failures.length) {
+    const reasons = sms.failures
+      .map((f) => `${f.to} ${f.reason}${f.detail ? ` (${f.detail})` : ''}`)
+      .join('; ')
+    console.error(`[sms-digest] ${sms.failures.length}/${sms.attempted} sends failed: ${reasons}`)
+  }
+
+  // No recipients configured is a deliberate opt-out, not a broken run.
+  const notConfigured = sms.attempted === 0
+  const status = notConfigured
+    ? ('not_configured' as const)
+    : sms.failures.length === 0
+      ? ('delivered' as const)
+      : sms.sent > 0
+        ? ('partial' as const)
+        : ('failed' as const)
+
+  return Response.json(
+    {
+      ok: status !== 'failed',
+      sent: text,
+      sms: {
+        status,
+        ...(notConfigured
+          ? { hint: 'SUMMARY_SMS_TO is unset, so the digest was composed but never texted.' }
+          : { attempted: sms.attempted, delivered: sms.sent, failures: sms.failures }),
+      },
+      stats: { newOrders, paymentCount, paymentSum, pendingOrders, receiptsToReview },
+    },
+    { status: status === 'failed' ? 502 : 200 }
+  )
 }

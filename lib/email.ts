@@ -5,12 +5,18 @@
  * notifyAllAdmins so it fires on the same events as in-app notifications
  * (orders, parsed messages, receipts, etc.).
  *
- * Best-effort: if RESEND_API_KEY is not set, or the send fails, it silently
- * no-ops and NEVER throws — email must not break the underlying action.
+ * Best-effort: if RESEND_API_KEY is not set, or the send fails, it no-ops and
+ * NEVER throws — email must not break the underlying action. It does report
+ * what happened, though; a channel that fails silently is indistinguishable
+ * from a quiet week, which is how an SMS outage here went unnoticed once.
  *
  * Env:
  *   RESEND_API_KEY    required to actually send (from resend.com)
  *   RESEND_FROM       from address; defaults to Resend's shared onboarding sender
+ *   RESEND_REPLY_TO   where replies land. The from address reads like a mailbox
+ *                     a person keeps ("Hungkee Operations"), so recipients will
+ *                     reply to it — point this at an inbox someone reads, or
+ *                     those replies are delivered to nobody.
  *   SUMMARY_EMAIL_TO  comma-separated override recipients; defaults to admin emails
  *   NEXT_PUBLIC_APP_URL  base URL used to build deep links in the email
  */
@@ -135,21 +141,31 @@ function renderText(input: SummaryEmailInput, link?: string): string {
   return parts.join('\n')
 }
 
+export interface EmailResult {
+  ok: boolean
+  /** Why it did not send. 'not_configured' means no key — not a failure. */
+  reason?: 'not_configured' | 'no_recipient' | 'rejected' | 'error'
+  detail?: string
+  /** Resend's message id, for chasing a delivery in their dashboard. */
+  id?: string
+}
+
 export async function sendAdminSummaryEmail(
   input: SummaryEmailInput,
   fallbackRecipients: string[] = []
-): Promise<void> {
+): Promise<EmailResult> {
   try {
     const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) return // email not configured — skip quietly
+    if (!apiKey) return { ok: false, reason: 'not_configured' }
 
     const override = process.env.SUMMARY_EMAIL_TO
       ? process.env.SUMMARY_EMAIL_TO.split(',').map((s) => s.trim()).filter(Boolean)
       : []
     const to = override.length ? override : fallbackRecipients.filter(Boolean)
-    if (!to.length) return
+    if (!to.length) return { ok: false, reason: 'no_recipient' }
 
     const from = process.env.RESEND_FROM || 'RelayOps <onboarding@resend.dev>'
+    const replyTo = process.env.RESEND_REPLY_TO?.trim()
     const link = entityLink(input.entityType, input.entityId)
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -161,6 +177,7 @@ export async function sendAdminSummaryEmail(
       body: JSON.stringify({
         from,
         to,
+        ...(replyTo ? { reply_to: replyTo } : {}),
         subject: input.subject,
         html: renderHtml(input, link),
         text: renderText(input, link),
@@ -169,9 +186,16 @@ export async function sendAdminSummaryEmail(
 
     if (!res.ok) {
       const body = await res.text()
-      console.error(`[email] Resend error ${res.status}: ${body.slice(0, 200)}`)
+      const detail = `Resend ${res.status}: ${body.slice(0, 200)}`
+      console.error(`[email] ${detail}`)
+      return { ok: false, reason: 'rejected', detail }
     }
+
+    const data = (await res.json().catch(() => ({}))) as { id?: string }
+    return { ok: true, id: data?.id }
   } catch (err) {
-    console.error('[email] unexpected error:', err)
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error('[email] unexpected error:', detail)
+    return { ok: false, reason: 'error', detail }
   }
 }

@@ -7,7 +7,8 @@
  *
  * Env:
  *   TERMII_API_KEY    required to actually send (from your Termii dashboard)
- *   SUMMARY_SMS_TO    recipient phone in international format, e.g. 2348031110001
+ *   SUMMARY_SMS_TO    comma-separated recipient phones in international format,
+ *                     e.g. 2348031110001,2348133184395
  *   TERMII_SENDER_ID  approved sender ID (defaults to "N-Alert", Termii's
  *                     shared alert sender that reaches DND numbers)
  *   TERMII_CHANNEL    "dnd" (default, reaches Do-Not-Disturb numbers) | "generic"
@@ -76,16 +77,42 @@ export async function sendSms(to: string, text: string): Promise<SmsResult> {
   }
 }
 
+export interface SmsBroadcastResult {
+  /** Numbers tried. 0 means SUMMARY_SMS_TO is unset — not a failure. */
+  attempted: number
+  sent: number
+  failures: Array<{ to: string; reason: SmsResult['reason']; detail?: string }>
+}
+
+/** Last four digits only — these end up in cron responses and server logs. */
+function maskPhone(phone: string): string {
+  const digits = normalize(phone)
+  return digits.length > 4 ? `${'*'.repeat(digits.length - 4)}${digits.slice(-4)}` : digits
+}
+
 /**
- * Alert the admin number(s) in SUMMARY_SMS_TO. Best-effort and never throws —
- * an SMS failure must not roll back the action that triggered it.
+ * Alert the admin number(s) in SUMMARY_SMS_TO. Never throws — an SMS failure
+ * must not roll back the action that triggered it.
+ *
+ * It does, however, report. Returning void here once hid a total outage: every
+ * send was rejected with SENDER_ID_NOT_APPROVED while the daily digest cron
+ * went on answering `ok: true`, so a broken alert channel was indistinguishable
+ * from a quiet day. Callers decide whether to escalate; they can no longer be
+ * kept in the dark.
  */
-export async function sendAdminSms(text: string): Promise<void> {
+export async function sendAdminSms(text: string): Promise<SmsBroadcastResult> {
+  const result: SmsBroadcastResult = { attempted: 0, sent: 0, failures: [] }
+
   const rawTo = process.env.SUMMARY_SMS_TO
-  if (!rawTo) return // SMS not configured — skip quietly
+  if (!rawTo) return result // SMS not configured — skip quietly
 
   const numbers = rawTo.split(',').map((s) => s.trim()).filter(Boolean)
   for (const number of numbers) {
-    await sendSms(number, text)
+    result.attempted++
+    const sent = await sendSms(number, text)
+    if (sent.ok) result.sent++
+    else result.failures.push({ to: maskPhone(number), reason: sent.reason, detail: sent.detail })
   }
+
+  return result
 }
