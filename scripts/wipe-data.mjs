@@ -177,6 +177,47 @@ if (!confirmed) {
 
 console.log('\n→ Deleting\n')
 
+// users and dealers point at each other:
+//
+//     users.dealer_id ──→ dealers.id
+//     dealers.user_id ──→ users.id
+//
+// Neither side has an ON DELETE clause, so whichever you delete first, the
+// other still references it and Postgres refuses. The cycle has to be broken
+// before either row can go, and dealers.user_id is the nullable side — so it
+// is cleared first, which detaches every dealer from its login without
+// touching the dealer row itself.
+//
+// This runs before the table loop because the loop deletes `dealers`, and a
+// surviving login row would block it.
+if (dealerLogins.length) {
+  const { error: unlinkErr } = await db
+    .from('dealers').update({ user_id: null }).not('user_id', 'is', null)
+  if (unlinkErr) {
+    console.error(`\n✗ could not detach dealer logins: ${unlinkErr.message}`)
+    console.error('  Stopped before deleting anything else.\n')
+    process.exit(1)
+  }
+}
+
+let loginsRemoved = 0
+for (const u of dealerLogins) {
+  const { error: rowErr } = await db.from('users').delete().eq('id', u.id)
+  if (rowErr) { console.error(`  dealer login row ${u.email}: ${rowErr.message}`); continue }
+
+  // The auth account may already be gone from an earlier partial run. That is
+  // not a failure — the public.users row was the thing blocking the wipe.
+  const { error } = await db.auth.admin.deleteUser(u.id)
+  if (error && !/not.?found/i.test(error.message)) {
+    console.error(`  dealer login ${u.email}: ${error.message}`)
+  }
+  loginsRemoved++
+}
+if (dealerLogins.length) {
+  const failed = dealerLogins.length - loginsRemoved
+  console.log(`  ${'dealer logins'.padEnd(24)} removed (${loginsRemoved})${failed ? ` — ${failed} FAILED` : ''}`)
+}
+
 for (const { table, count } of plan) {
   if (count === 0) {
     console.log(`  ${table.padEnd(24)} already empty`)
@@ -200,11 +241,5 @@ for (const { bucket, paths } of storagePlan) {
   }
   console.log(`  ${`storage:${bucket}`.padEnd(24)} cleared (${paths.length})`)
 }
-
-for (const u of dealerLogins) {
-  const { error } = await db.auth.admin.deleteUser(u.id)
-  if (error) console.error(`  dealer login ${u.email}: ${error.message}`)
-}
-if (dealerLogins.length) console.log(`  ${'dealer logins'.padEnd(24)} removed (${dealerLogins.length})`)
 
 console.log(`\n✓ Wiped ${total} rows. The system is empty and ready for real data.\n`)
