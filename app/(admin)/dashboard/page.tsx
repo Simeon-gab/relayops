@@ -5,6 +5,7 @@ import { fetchPartnerView } from '@/lib/db/partner-view'
 import { getDailyBriefing } from '@/lib/ai/briefing'
 import { listPendingProposals, listAllPendingProposals, listRecentAgentRuns } from '@/lib/db/ai-proposals'
 import { getStaffUser } from '@/lib/auth/roles'
+import { readMdFullView } from '@/lib/auth/md-view'
 import { createClient } from '@/lib/supabase/server'
 import { StatCard } from '@/components/admin/stat-card'
 import { DailySummary } from '@/components/admin/daily-summary'
@@ -21,9 +22,10 @@ interface Props {
  * One route, three screens.
  *
  * The MD lands on a deliberately small page and the partner on the physical
- * chain; managers get the full operational dashboard. `?view=full` lets the
- * MD cross into the manager view on the same login, so the audit trail stays
- * attached to one person rather than being split across two accounts.
+ * chain; managers get the full operational dashboard. The MD can cross into
+ * the manager view on the same login — either for one visit with `?view=full`
+ * or persistently via the "Full system" switch in the header — so the audit
+ * trail stays attached to one person rather than being split across accounts.
  */
 export default async function DashboardPage({ searchParams }: Props) {
   const { view } = await searchParams
@@ -33,7 +35,9 @@ export default async function DashboardPage({ searchParams }: Props) {
   // The layout already rejected non-staff; this is a type narrowing.
   const role = staff?.role ?? 'manager'
 
-  if (role === 'md' && view !== 'full') {
+  const mdFullView = role === 'md' && (view === 'full' || (await readMdFullView()))
+
+  if (role === 'md' && !mdFullView) {
     const [stats, metrics, proposals] = await Promise.all([
       getDashboardStats(),
       fetchDailyMetrics(),

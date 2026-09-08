@@ -6,13 +6,16 @@ import type { DailySummaryMetrics } from '@/lib/db/daily-metrics'
 import type { DashboardStats } from '@/types/dashboard'
 import type { AiProposal } from '@/lib/db/ai-proposals'
 import { DecisionQueue } from './decision-queue'
+import { MdViewToggle } from './md-view-toggle'
 
 /**
  * The MD's screen.
  *
  * Three questions, in this order: is money coming in, is stock moving, what
  * needs me. Everything else in RelayOps is one click away behind "See the
- * full system" — same login, same audit trail, just not on this page.
+ * full system" — same login, same audit trail, just not on this page. That
+ * click flips the header's "Full system" switch, so the sidebar opens up too
+ * and stays that way until he switches it back.
  *
  * The briefing renders server-side and pre-generated; he never presses a
  * button to find out how the business is doing.
@@ -199,13 +202,7 @@ export function MdDashboard({ briefing, metrics, stats, proposals, displayName }
         <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
       </Link>
 
-      <Link
-        href="/dashboard?view=full"
-        className="mt-6 flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        See the full system
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
+      <MdViewToggle enabled={false} variant="link" />
     </div>
   )
 }

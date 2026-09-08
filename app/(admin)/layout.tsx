@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { isStaff } from '@/lib/auth/roles'
+import { isStaff, type StaffRole } from '@/lib/auth/roles'
+import { readMdFullView } from '@/lib/auth/md-view'
+import { MdViewToggle } from '@/components/admin/md-view-toggle'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { NavLinks } from '@/components/admin/nav-links'
 import { MobileNav } from '@/components/admin/mobile-nav'
@@ -41,6 +43,11 @@ export default async function AdminLayout({
 
   const role = profile.role
 
+  // The MD can opt into the manager's sidebar. It is a display preference:
+  // the md role already holds every manager permission (lib/auth/roles.ts).
+  const mdFullView = role === 'md' && (await readMdFullView())
+  const navRole: StaffRole = mdFullView ? 'manager' : role
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
@@ -50,7 +57,7 @@ export default async function AdminLayout({
         </div>
 
         <div className="flex-1 overflow-auto px-3 py-3">
-          <NavLinks role={role} />
+          <NavLinks role={navRole} />
         </div>
 
         <div className="border-t border-border px-4 py-3">
@@ -61,8 +68,14 @@ export default async function AdminLayout({
       {/* Main column: topbar + scrollable content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4">
-          <MobileNav role={role} />
+          <MobileNav role={navRole} />
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            {role === 'md' && (
+              <>
+                <MdViewToggle enabled={mdFullView} />
+                <div className="mx-1 hidden h-4 w-px bg-border sm:block" />
+              </>
+            )}
             <NotificationsBell />
             <div className="mx-1 hidden h-4 w-px bg-border sm:block" />
             <span className="hidden max-w-[38vw] truncate text-sm text-muted-foreground sm:inline">
