@@ -14,7 +14,7 @@
  * email-shaped identifier. Most of ours have a phone and no email, so when the
  * `dealers.email` column is empty we derive one from their phone number:
  *
- *     +234 803 111 0002  →  2348031110002@dealers.hungkee.ng
+ *     +234 803 111 0002  →  2348031110002@dealers.simsmultiventure.org
  *
  * They never receive mail at it. It is a username that happens to look like an
  * email, which is why it can point at a domain that does not accept mail.
@@ -60,7 +60,7 @@ const outFile = outIndex !== -1 ? args[outIndex + 1] : 'dealer-logins.csv'
 
 const target = args.find((a) => !a.startsWith('--') && a !== outFile)
 
-const LOGIN_DOMAIN = process.env.DEALER_LOGIN_DOMAIN || 'dealers.hungkee.ng'
+const LOGIN_DOMAIN = process.env.DEALER_LOGIN_DOMAIN || 'dealers.simsmultiventure.org'
 
 function die(message) {
   console.error(`\n✗ ${message}\n`)

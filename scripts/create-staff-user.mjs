@@ -10,9 +10,9 @@
  * Usage:
  *   node scripts/create-staff-user.mjs <email> <role> "<Display Name>" [password]
  *
- *   node scripts/create-staff-user.mjs chief@hungkee.ng md "Chief Adewale"
- *   node scripts/create-staff-user.mjs wei@hungkee.cn partner "Wei Zhang"
- *   node scripts/create-staff-user.mjs ops@hungkee.ng manager "Ngozi Eze"
+ *   node scripts/create-staff-user.mjs chief@simsmultiventure.org md "Chief Adewale"
+ *   node scripts/create-staff-user.mjs wei@simsmultiventure.org partner "Wei Zhang"
+ *   node scripts/create-staff-user.mjs ops@simsmultiventure.org manager "Ngozi Eze"
  *
  * Omit the password and one is generated and printed once. It is never stored
  * anywhere else — copy it before closing the terminal.

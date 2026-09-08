@@ -24,7 +24,7 @@ INSERT INTO warehouses (id, code, name, city, state, is_import_base, active) VAL
 -- ADMIN USER  (placeholder — see note above)
 -- ─────────────────────────────────────────
 INSERT INTO users (id, email, role, display_name) VALUES
-  ('00000000-0000-0000-0002-000000000001', 'simeonayano209@gmail.com', 'admin', 'Simeon Gabriel');
+  ('00000000-0000-0000-0002-000000000001', 'admin@simsmultiventure.org', 'admin', 'Simeon Gabriel');
 
 
 -- ─────────────────────────────────────────
