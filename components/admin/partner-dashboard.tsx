@@ -1,3 +1,4 @@
+import { PasteLoadingCard } from '@/components/admin/paste-loading-card'
 import Link from 'next/link'
 import {
   Ship,
@@ -121,6 +122,8 @@ export function PartnerDashboard({ view, proposals, displayName }: Props) {
           </span>
         </div>
       </div>
+
+      <PasteLoadingCard className="mb-6" />
 
       {/* Action strip */}
       {(view.awaitingAllocation > 0 || incoming.length > 0) && (

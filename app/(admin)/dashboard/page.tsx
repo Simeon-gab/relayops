@@ -13,6 +13,7 @@ import { DecisionQueue } from '@/components/admin/decision-queue'
 import { AgentActivity } from '@/components/admin/agent-activity'
 import { MdDashboard } from '@/components/admin/md-dashboard'
 import { PartnerDashboard } from '@/components/admin/partner-dashboard'
+import { PasteLoadingCard } from '@/components/admin/paste-loading-card'
 
 interface Props {
   searchParams: Promise<{ view?: string }>
@@ -85,6 +86,8 @@ export default async function DashboardPage({ searchParams }: Props) {
         <h1 className="text-[28px] font-bold tracking-tight text-heading">Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">Daily operations overview.</p>
       </div>
+
+      <PasteLoadingCard className="mb-6" />
 
       <DailySummary metrics={metrics} />
 

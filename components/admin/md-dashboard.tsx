@@ -1,3 +1,4 @@
+import { PasteLoadingCard } from '@/components/admin/paste-loading-card'
 import Link from 'next/link'
 import { Search, ArrowRight, Sparkles, Wallet, Package, Truck } from 'lucide-react'
 import { formatNaira } from '@/lib/utils/format'
@@ -78,6 +79,8 @@ export function MdDashboard({ briefing, metrics, stats, proposals, displayName }
         {name ? `, ${name}` : ''}.
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">Here is today.</p>
+
+      <PasteLoadingCard className="mt-6" />
 
       {/* Briefing — the centrepiece, not a widget */}
       <div className="mt-6 rounded-xl border border-border bg-card px-6 py-5">

@@ -7,6 +7,7 @@ import {
   Container,
   ClipboardList,
   Truck,
+  ClipboardPaste,
   Warehouse,
   Bike,
   Users,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard',  href: '/dashboard',    icon: LayoutDashboard, roles: ALL },
   { label: 'Containers', href: '/containers',   icon: Container,       roles: ['manager', 'partner'] },
   { label: 'Orders',     href: '/dealer-orders', icon: ClipboardList,  roles: ['manager'] },
+  { label: 'Paste loading', href: '/shipments/load', icon: ClipboardPaste, roles: ALL },
   { label: 'Shipments',  href: '/shipments',    icon: Truck,           roles: ['manager', 'partner'] },
   { label: 'Warehouses', href: '/warehouses',   icon: Warehouse,       roles: ['manager', 'partner'] },
   { label: 'Products',   href: '/products',     icon: Bike,            roles: ['manager'] },
@@ -61,11 +63,16 @@ interface NavLinksProps {
 
 export function NavLinks({ role, onNavigate }: NavLinksProps) {
   const pathname = usePathname()
+  const items = navItemsForRole(role)
+  // The most specific match wins, so /shipments/load lights up "Paste loading", not "Shipments".
+  const activeHref = items
+    .filter(({ href }) => pathname === href || pathname.startsWith(href + '/'))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   return (
     <nav className="flex flex-col gap-0.5">
-      {navItemsForRole(role).map(({ label, href, icon: Icon }) => {
-        const isActive = pathname === href || pathname.startsWith(href + '/')
+      {items.map(({ label, href, icon: Icon }) => {
+        const isActive = href === activeHref
         return (
           <Link
             key={href}
