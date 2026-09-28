@@ -4,10 +4,10 @@ const SCHEMA = `
 All tables live in the public schema. Soft-deleted rows have deleted_at IS NOT NULL — always filter WHERE deleted_at IS NULL unless the question is explicitly about deleted records.
 
 ### warehouses
-id uuid PK | code text ('LAGOS'|'KANO') | name text | city text | state text | is_import_base boolean | active boolean | created_at timestamptz
+id uuid PK | code text ('LAGOS'|'KANO') | name text | city text | state text | is_import_base boolean | partner_dealer_id uuid FK→dealers.id (set = warehouse owned by that dealer, e.g. KANO is Kabiru's; its stock is NOT ours) | active boolean | created_at timestamptz
 
 ### products
-id uuid PK | sku_code text (e.g. 'HK-M150-RED') | display_name text | category text ('motorcycle'|'ebike') | engine_size_cc integer | color text | import_cost_naira numeric | sell_price_naira numeric | active boolean | created_at timestamptz | updated_at timestamptz | deleted_at timestamptz
+id uuid PK | sku_code text (e.g. 'HK-M150-RED') | display_name text | category text ('motorcycle'|'ebike'|'spare_part') | unit_label text ('unit'|'carton'|'piece') | engine_size_cc integer | color text | import_cost_naira numeric | sell_price_naira numeric | active boolean | created_at timestamptz | updated_at timestamptz | deleted_at timestamptz
 
 ### dealers
 id uuid PK | business_name text | contact_name text | phone text | email text | city text | state text | preferred_language text ('en'|'ha'|'yo'|'ig') | served_by_warehouse_id uuid FK→warehouses.id | credit_limit_naira numeric | active boolean | notes text | created_at timestamptz | updated_at timestamptz | deleted_at timestamptz
@@ -41,7 +41,7 @@ id uuid PK | dealer_order_id uuid FK→dealer_orders.id | product_id uuid FK→p
 id uuid PK | shipment_type text ('dealer'|'transfer') | origin_warehouse_id uuid FK→warehouses.id | destination_warehouse_id uuid FK→warehouses.id (nullable, for transfer shipments) | destination_dealer_id uuid FK→dealers.id (nullable, for dealer shipments) | destination_city text | destination_state text | status text ('pending'|'dispatched'|'in_transit'|'delivered'|'cancelled') | dispatched_at timestamptz | delivered_at timestamptz | total_amount_naira numeric | amount_paid_naira numeric DEFAULT 0 | notes text | created_by uuid | created_at timestamptz | updated_at timestamptz | deleted_at timestamptz
 
 ### shipment_items
-id uuid PK | shipment_id uuid FK→shipments.id | product_id uuid FK→products.id | quantity integer | unit_price_naira numeric | dealer_order_item_id uuid FK→dealer_order_items.id
+id uuid PK | shipment_id uuid FK→shipments.id | product_id uuid FK→products.id | quantity integer | color text (per-line colour, may be null) | unit_price_naira numeric | dealer_order_item_id uuid FK→dealer_order_items.id
 
 ### status_events
 id uuid PK | shipment_id uuid FK→shipments.id | from_status text | to_status text | event_at timestamptz | recorded_at timestamptz | recorded_by uuid | source text ('admin'|'dealer_confirmation'|'ai_inferred') | notes text

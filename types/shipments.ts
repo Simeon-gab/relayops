@@ -33,6 +33,7 @@ export interface ShipmentItemRow {
   sku_code: string
   display_name: string
   color: string | null
+  unit_label: string
   quantity: number
   unit_price_naira: number | null
 }

@@ -27,7 +27,8 @@ import { FileUpload } from '@/components/admin/file-upload'
 import type { ProductDetail } from '@/types/products'
 
 type Mode = 'create' | 'edit'
-type Category = 'motorcycle' | 'ebike'
+type Category = 'motorcycle' | 'ebike' | 'spare_part'
+type UnitLabel = 'unit' | 'carton' | 'piece'
 type FieldErrors = Record<string, string>
 
 interface Props {
@@ -46,6 +47,9 @@ export function ProductForm({ product, mode }: Props) {
   const [displayName, setDisplayName] = useState(product?.display_name ?? '')
   const [category, setCategory] = useState<Category>(
     (product?.category as Category) ?? 'motorcycle'
+  )
+  const [unitLabel, setUnitLabel] = useState<UnitLabel>(
+    (product?.unit_label as UnitLabel) ?? 'unit'
   )
   const [color, setColor] = useState(product?.color ?? '')
   const [engineSize, setEngineSize] = useState(
@@ -85,6 +89,7 @@ export function ProductForm({ product, mode }: Props) {
       sku_code: sku.trim().toUpperCase(),
       display_name: displayName.trim(),
       category,
+      unit_label: unitLabel,
       color: color.trim() || null,
       engine_size_cc:
         category === 'motorcycle' && engineSize ? parseInt(engineSize, 10) || null : null,
@@ -193,7 +198,12 @@ export function ProductForm({ product, mode }: Props) {
               <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
               <Select
                 value={category}
-                onValueChange={(v) => { setCategory(v as Category); clearError('category') }}
+                onValueChange={(v) => {
+                  setCategory(v as Category)
+                  // Parts usually come by the carton; vehicles are single units.
+                  setUnitLabel(v === 'spare_part' ? 'carton' : 'unit')
+                  clearError('category')
+                }}
                 disabled={isPending}
               >
                 <SelectTrigger id="category" className="w-full">
@@ -202,9 +212,30 @@ export function ProductForm({ product, mode }: Props) {
                 <SelectContent>
                   <SelectItem value="motorcycle">Motorcycle</SelectItem>
                   <SelectItem value="ebike">E-bike</SelectItem>
+                  <SelectItem value="spare_part">Spare part</SelectItem>
                 </SelectContent>
               </Select>
               {fieldErrors.category && <p className="text-xs text-red-600">{fieldErrors.category}</p>}
+            </div>
+
+            {/* Counting unit */}
+            <div className="space-y-1.5">
+              <Label htmlFor="unit_label">Counted in</Label>
+              <Select
+                value={unitLabel}
+                onValueChange={(v) => setUnitLabel(v as UnitLabel)}
+                disabled={isPending}
+              >
+                <SelectTrigger id="unit_label" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unit">Units</SelectItem>
+                  <SelectItem value="carton">Cartons</SelectItem>
+                  <SelectItem value="piece">Pieces</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-400">e.g. spare parts in cartons, tyres and engines in pieces</p>
             </div>
 
             {/* Color */}

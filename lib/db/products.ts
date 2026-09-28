@@ -6,6 +6,7 @@ type RawProduct = {
   sku_code: string
   display_name: string
   category: string
+  unit_label: string
   color: string | null
   engine_size_cc: number | null
   import_cost_naira: number | null
@@ -25,6 +26,7 @@ function toSummary(p: RawProduct): ProductSummary {
     sku_code: p.sku_code,
     display_name: p.display_name,
     category: p.category,
+    unit_label: p.unit_label,
     color: p.color,
     engine_size_cc: p.engine_size_cc,
     import_cost_naira: p.import_cost_naira,
@@ -41,7 +43,7 @@ export async function getProducts(): Promise<ProductSummary[]> {
   const { data, error } = await db
     .from('products')
     .select(
-      'id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, image_path, warehouse_stock(quantity, warehouses(id, name, code))'
+      'id, sku_code, display_name, category, unit_label, color, engine_size_cc, import_cost_naira, sell_price_naira, active, image_path, warehouse_stock(quantity, warehouses(id, name, code))'
     )
     .eq('active', true)
     .order('display_name')
@@ -57,7 +59,7 @@ export async function getProduct(productId: string): Promise<ProductDetail | nul
   const { data, error } = await db
     .from('products')
     .select(
-      'id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, image_path, warehouse_stock(quantity, warehouses(id, name, code))'
+      'id, sku_code, display_name, category, unit_label, color, engine_size_cc, import_cost_naira, sell_price_naira, active, image_path, warehouse_stock(quantity, warehouses(id, name, code))'
     )
     .eq('id', productId)
     .single()

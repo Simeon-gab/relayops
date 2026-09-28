@@ -104,7 +104,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           value={stats.warehouseStock !== null ? String(stats.warehouseStock.total) : '—'}
           subtitle={
             stats.warehouseStock !== null
-              ? `Lagos: ${stats.warehouseStock.lagos} · Kano: ${stats.warehouseStock.kano}`
+              ? `Motorcycles in Lagos${stats.warehouseStock.parts ? ` · ${stats.warehouseStock.parts}` : ''}`
               : 'data unavailable'
           }
         />

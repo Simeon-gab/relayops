@@ -93,7 +93,10 @@ function Stat({
 export function PartnerDashboard({ view, proposals, displayName }: Props) {
   const name = displayName?.split(' ')[0]
   const incoming = arrivingSoon(view.pipeline)
-  const inStock = view.skuFlow.reduce((sum, s) => sum + s.in_lagos + s.in_kano, 0)
+  // Motorcycles in our own warehouse; Kano is Mr Kabiru's and cartons of parts aren't bikes.
+  const inStock = view.skuFlow
+    .filter((s) => s.category !== 'spare_part')
+    .reduce((sum, s) => sum + s.in_lagos, 0)
   const totalDispatched = view.skuFlow.reduce((sum, s) => sum + s.dispatched, 0)
 
   return (
@@ -292,7 +295,6 @@ export function PartnerDashboard({ view, proposals, displayName }: Props) {
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-5 py-2 font-medium">Model</th>
                     <th className="px-5 py-2 text-right font-medium">Lagos</th>
-                    <th className="px-5 py-2 text-right font-medium">Kano</th>
                     <th className="px-5 py-2 text-right font-medium">Gone out</th>
                   </tr>
                 </thead>
@@ -309,11 +311,6 @@ export function PartnerDashboard({ view, proposals, displayName }: Props) {
                         className={`px-5 py-2.5 text-right font-medium ${s.in_lagos < 5 ? 'text-status-danger' : 'text-foreground'}`}
                       >
                         {s.in_lagos}
-                      </td>
-                      <td
-                        className={`px-5 py-2.5 text-right font-medium ${s.in_kano < 5 ? 'text-status-danger' : 'text-foreground'}`}
-                      >
-                        {s.in_kano}
                       </td>
                       <td className="px-5 py-2.5 text-right text-muted-foreground">
                         {s.dispatched}

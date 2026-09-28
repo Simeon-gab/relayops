@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { DataTable, type Column } from './data-table'
+import { CATEGORY_LABELS, formatQty } from '@/lib/utils/format'
 import type { WarehouseStockRow } from '@/types/warehouses'
 
 const columns: Column<WarehouseStockRow>[] = [
@@ -18,7 +19,7 @@ const columns: Column<WarehouseStockRow>[] = [
   {
     header: 'Category',
     cell: (r) => (
-      <span className="capitalize text-slate-600">{r.category}</span>
+      <span className="text-slate-600">{CATEGORY_LABELS[r.category] ?? r.category}</span>
     ),
   },
   {
@@ -31,7 +32,7 @@ const columns: Column<WarehouseStockRow>[] = [
     header: 'Quantity',
     className: 'text-right',
     cell: (r) => (
-      <span className="tabular-nums font-semibold">{r.quantity}</span>
+      <span className="tabular-nums font-semibold">{formatQty(r.quantity, r.unit_label)}</span>
     ),
   },
 ]

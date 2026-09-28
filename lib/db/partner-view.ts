@@ -41,6 +41,7 @@ export interface SkuFlowRow {
   display_name: string
   in_lagos: number
   in_kano: number
+  category: string
   dispatched: number
 }
 
@@ -178,7 +179,7 @@ async function fetchSkuFlow(
   db: Awaited<ReturnType<typeof createClient>>
 ): Promise<SkuFlowRow[]> {
   const [stockRes, movesRes] = await Promise.all([
-    db.from('warehouse_stock').select('quantity, warehouses(code), products(sku_code, display_name)'),
+    db.from('warehouse_stock').select('quantity, warehouses(code), products(sku_code, display_name, category)'),
     db
       .from('stock_movements')
       .select('quantity_delta, products(sku_code)')
@@ -190,7 +191,7 @@ async function fetchSkuFlow(
   type StockRow = {
     quantity: number
     warehouses: { code: string } | null
-    products: { sku_code: string; display_name: string } | null
+    products: { sku_code: string; display_name: string; category: string } | null
   }
   type MoveRow = { quantity_delta: number; products: { sku_code: string } | null }
 
@@ -204,6 +205,7 @@ async function fetchSkuFlow(
       display_name: r.products?.display_name ?? sku,
       in_lagos: 0,
       in_kano: 0,
+      category: r.products?.category ?? 'motorcycle',
       dispatched: 0,
     }
     if (r.warehouses?.code === 'LAGOS') row.in_lagos += r.quantity ?? 0

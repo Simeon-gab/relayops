@@ -18,7 +18,8 @@ async function getAdminUser() {
 export interface ProductInput {
   sku_code: string
   display_name: string
-  category: 'motorcycle' | 'ebike'
+  category: 'motorcycle' | 'ebike' | 'spare_part'
+  unit_label?: 'unit' | 'carton' | 'piece'
   color?: string | null
   engine_size_cc?: number | null
   sell_price_naira?: number | null
@@ -35,7 +36,8 @@ export type ProductActionResult =
 function validate(input: ProductInput): string | null {
   if (!input.sku_code?.trim()) return 'SKU code is required.'
   if (!input.display_name?.trim()) return 'Display name is required.'
-  if (!['motorcycle', 'ebike'].includes(input.category)) return 'Category must be Motorcycle or E-bike.'
+  if (!['motorcycle', 'ebike', 'spare_part'].includes(input.category)) return 'Category must be Motorcycle, E-bike or Spare part.'
+  if (input.unit_label && !['unit', 'carton', 'piece'].includes(input.unit_label)) return 'Unit must be unit, carton or piece.'
   if (input.category === 'ebike' && input.engine_size_cc) return 'E-bikes cannot have an engine size.'
   if (input.sell_price_naira != null && input.sell_price_naira < 0) return 'Sell price must be 0 or greater.'
   if (input.import_cost_naira != null && input.import_cost_naira < 0) return 'Import cost must be 0 or greater.'
@@ -70,8 +72,8 @@ export async function createProduct(input: ProductInput): Promise<ProductActionR
     const res = await client.query(
       `INSERT INTO products
          (sku_code, display_name, category, color, engine_size_cc,
-          sell_price_naira, import_cost_naira, active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
+          sell_price_naira, import_cost_naira, active, unit_label)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8)
        RETURNING id`,
       [
         sku,
@@ -81,6 +83,7 @@ export async function createProduct(input: ProductInput): Promise<ProductActionR
         input.category === 'motorcycle' ? (input.engine_size_cc ?? null) : null,
         input.sell_price_naira ?? null,
         input.import_cost_naira ?? null,
+        input.unit_label ?? 'unit',
       ]
     )
 
@@ -141,7 +144,7 @@ export async function updateProduct(productId: string, input: ProductInput): Pro
     await client.query(
       `UPDATE products
        SET sku_code=$1, display_name=$2, category=$3, color=$4, engine_size_cc=$5,
-           sell_price_naira=$6, import_cost_naira=$7, active=$8, updated_at=now()
+           sell_price_naira=$6, import_cost_naira=$7, active=$8, unit_label=$10, updated_at=now()
        WHERE id=$9`,
       [
         sku,
@@ -153,6 +156,7 @@ export async function updateProduct(productId: string, input: ProductInput): Pro
         input.import_cost_naira ?? null,
         input.active ?? true,
         productId,
+        input.unit_label ?? 'unit',
       ]
     )
 

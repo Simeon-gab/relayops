@@ -140,7 +140,7 @@ export function MdDashboard({ briefing, metrics, stats, proposals, displayName }
           value={stats.warehouseStock ? String(stats.warehouseStock.total) : '—'}
           detail={
             stats.warehouseStock
-              ? `Lagos ${stats.warehouseStock.lagos} · Kano ${stats.warehouseStock.kano}`
+              ? `Motorcycles in Lagos${stats.warehouseStock.parts ? ` · ${stats.warehouseStock.parts}` : ''}`
               : 'data unavailable'
           }
         />

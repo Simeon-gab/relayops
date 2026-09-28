@@ -1,7 +1,9 @@
 export interface WarehouseStockMetric {
+  /** Motorcycles and e-bikes in warehouses we own. Partner warehouses (Kano) are excluded. */
   total: number
   lagos: number
-  kano: number
+  /** "13 cartons spare parts · 10 pieces tyre with alloy wheel", or null when none. */
+  parts: string | null
 }
 
 export interface ActiveShipmentsMetric {

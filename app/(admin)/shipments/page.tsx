@@ -1,4 +1,7 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
+import { ClipboardPaste } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getShipments, getShipmentStatusCounts } from '@/lib/db/shipments'
 import { ShipmentFilterBar } from '@/components/admin/shipment-filter-bar'
 import { ShipmentsTable } from '@/components/admin/shipments-table'
@@ -29,11 +32,19 @@ export default async function ShipmentsPage({ searchParams }: Props) {
 
   return (
     <div className="px-6 py-10">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Shipments</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Stock movements between warehouses and to dealers
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Shipments</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Stock movements between warehouses and to dealers
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/shipments/load">
+            <ClipboardPaste className="mr-1.5 h-4 w-4" />
+            Paste loading message
+          </Link>
+        </Button>
       </div>
 
       <div className="mb-6">

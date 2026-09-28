@@ -3,6 +3,7 @@ export interface ProductSummary {
   sku_code: string
   display_name: string
   category: string
+  unit_label: string
   color: string | null
   engine_size_cc: number | null
   import_cost_naira: number | null

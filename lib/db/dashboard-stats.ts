@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { formatNaira } from '@/lib/utils/format'
+import { formatNaira, formatQty } from '@/lib/utils/format'
 import type {
   DashboardStats,
   WarehouseStockMetric,
@@ -15,22 +15,39 @@ async function fetchWarehouseStock(db: Supabase): Promise<WarehouseStockMetric |
   try {
     const { data, error } = await db
       .from('warehouse_stock')
-      .select('quantity, warehouses(code)')
+      .select('quantity, warehouses(code, partner_dealer_id), products(display_name, category, unit_label)')
 
     if (error) throw error
 
-    type Row = { quantity: number; warehouses: { code: string } | null }
+    type Row = {
+      quantity: number
+      warehouses: { code: string; partner_dealer_id: string | null } | null
+      products: { display_name: string; category: string; unit_label: string } | null
+    }
+    let total = 0
     let lagos = 0
-    let kano = 0
+    const parts = new Map<string, { qty: number; unit: string }>()
 
     for (const row of (data ?? []) as unknown as Row[]) {
       const qty = row.quantity ?? 0
-      const code = row.warehouses?.code
-      if (code === 'LAGOS') lagos += qty
-      else if (code === 'KANO') kano += qty
+      // A partner's warehouse holds their stock, not ours.
+      if (!row.warehouses || row.warehouses.partner_dealer_id) continue
+      if (row.products?.category === 'spare_part') {
+        const p = parts.get(row.products.display_name) ?? { qty: 0, unit: row.products.unit_label }
+        p.qty += qty
+        parts.set(row.products.display_name, p)
+        continue
+      }
+      total += qty
+      if (row.warehouses.code === 'LAGOS') lagos += qty
     }
 
-    return { total: lagos + kano, lagos, kano }
+    const partsText = [...parts.entries()]
+      .filter(([, p]) => p.qty > 0)
+      .map(([name, p]) => `${formatQty(p.qty, p.unit)} ${name.toLowerCase()}`)
+      .join(' · ')
+
+    return { total, lagos, parts: partsText || null }
   } catch {
     return null
   }

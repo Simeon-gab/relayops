@@ -8,6 +8,7 @@ type RawProduct = {
   sku_code: string
   display_name: string
   category: string
+  unit_label: string
   color: string | null
   engine_size_cc: number | null
   import_cost_naira: number | null
@@ -21,7 +22,7 @@ async function getActiveProducts(): Promise<ProductSummary[]> {
 
   const { data, error } = await db
     .from('products')
-    .select('id, sku_code, display_name, category, color, engine_size_cc, import_cost_naira, sell_price_naira, active, warehouse_stock(quantity)')
+    .select('id, sku_code, display_name, category, unit_label, color, engine_size_cc, import_cost_naira, sell_price_naira, active, warehouse_stock(quantity)')
     .eq('active', true)
     .order('display_name')
 
@@ -32,6 +33,7 @@ async function getActiveProducts(): Promise<ProductSummary[]> {
     sku_code: p.sku_code,
     display_name: p.display_name,
     category: p.category,
+    unit_label: p.unit_label,
     color: p.color,
     engine_size_cc: p.engine_size_cc,
     import_cost_naira: p.import_cost_naira,

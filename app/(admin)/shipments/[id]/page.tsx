@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/admin/status-badge'
 import { ShipmentStatusActions } from '@/components/admin/shipment-status-actions'
 import { DraftMessageButton } from '@/components/admin/draft-message-button'
 import { getShipment } from '@/lib/db/shipments'
-import { formatNairaCurrency } from '@/lib/utils/format'
+import { formatNairaCurrency, formatQty } from '@/lib/utils/format'
 import type { ShipmentItemRow, StatusEvent } from '@/types/shipments'
 
 type Props = {
@@ -211,8 +211,8 @@ export default async function ShipmentDetailPage({ params }: Props) {
                 </tr>
               ) : (
                 <>
-                  {shipment.items.map((item: ShipmentItemRow) => (
-                    <tr key={item.product_id} className="hover:bg-subtle">
+                  {shipment.items.map((item: ShipmentItemRow, idx: number) => (
+                    <tr key={`${item.product_id}-${idx}`} className="hover:bg-subtle">
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs text-muted-foreground">
                           {item.sku_code}
@@ -225,7 +225,7 @@ export default async function ShipmentDetailPage({ params }: Props) {
                         {item.color ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="tabular-nums font-semibold">{item.quantity}</span>
+                        <span className="tabular-nums font-semibold">{formatQty(item.quantity, item.unit_label)}</span>
                       </td>
                       {isDealer && (
                         <>

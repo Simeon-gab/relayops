@@ -4,7 +4,7 @@ import { ArrowLeft, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getProduct } from '@/lib/db/products'
-import { formatNairaCurrency } from '@/lib/utils/format'
+import { CATEGORY_LABELS, formatNairaCurrency, formatQty } from '@/lib/utils/format'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -22,7 +22,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const specs: { label: string; value: string | number | null }[] = [
     { label: 'SKU', value: product.sku_code },
-    { label: 'Category', value: product.category },
+    { label: 'Category', value: CATEGORY_LABELS[product.category] ?? product.category },
+    { label: 'Counted in', value: `${product.unit_label}s` },
     { label: 'Color', value: product.color ?? '—' },
     { label: 'Engine', value: product.engine_size_cc ? `${product.engine_size_cc} cc` : 'N/A' },
     {
@@ -52,7 +53,7 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
           <p className="mt-1 text-sm text-slate-500">
             <span className="font-mono">{product.sku_code}</span> ·{' '}
-            <span className="tabular-nums">{product.total_stock}</span> units total
+            <span className="tabular-nums">{formatQty(product.total_stock, product.unit_label)}</span> total
           </p>
         </div>
         <Button asChild variant="outline" size="sm">

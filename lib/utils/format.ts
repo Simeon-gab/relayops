@@ -32,3 +32,15 @@ export function timeAgo(iso: string): string {
   if (days <= 14) return `${days}d ago`
   return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })
 }
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  motorcycle: 'Motorcycle',
+  ebike: 'E-bike',
+  spare_part: 'Spare part',
+}
+
+/** "80 units", "13 cartons", "1 piece" — products carry their own counting unit. */
+export function formatQty(qty: number, unitLabel: string | null | undefined): string {
+  const unit = unitLabel || 'unit'
+  return `${qty.toLocaleString()} ${qty === 1 ? unit : `${unit}s`}`
+}

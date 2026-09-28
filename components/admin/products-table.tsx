@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { DataTable, type Column } from './data-table'
-import { formatNairaCurrency } from '@/lib/utils/format'
+import { CATEGORY_LABELS, formatNairaCurrency, formatQty } from '@/lib/utils/format'
 import type { ProductSummary } from '@/types/products'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -37,7 +37,7 @@ const columns: Column<ProductSummary>[] = [
     header: 'Category',
     className: 'hidden lg:table-cell',
     cell: (r) => (
-      <span className="capitalize text-slate-600">{r.category}</span>
+      <span className="text-slate-600">{CATEGORY_LABELS[r.category] ?? r.category}</span>
     ),
   },
   {
@@ -58,7 +58,7 @@ const columns: Column<ProductSummary>[] = [
     header: 'Stock',
     className: 'text-right',
     cell: (r) => (
-      <span className="tabular-nums font-semibold">{r.total_stock}</span>
+      <span className="tabular-nums font-semibold">{formatQty(r.total_stock, r.unit_label)}</span>
     ),
   },
 ]

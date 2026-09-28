@@ -586,7 +586,14 @@ export async function executeAllocation(input: ExecuteAllocationInput): Promise<
       )
     }
 
-    // Decrease Lagos for Kano transfer ('transfer_out') + Increase Kano ('transfer_in')
+    // Decrease Lagos for Kano transfer ('transfer_out') + Increase Kano ('transfer_in').
+    // Kano is Mr Kabiru's warehouse (partner_dealer_id set): what goes there is
+    // his, so Lagos records a dispatch and nothing is credited to Kano.
+    const { rows: [kanoRow] } = await client.query<{ partner_dealer_id: string | null }>(
+      `SELECT partner_dealer_id FROM warehouses WHERE id = $1`,
+      [KANO_WAREHOUSE_ID]
+    )
+    const kanoIsPartner = !!kanoRow?.partner_dealer_id
     for (const item of kanoItems) {
       await client.query(
         `UPDATE warehouse_stock SET quantity = GREATEST(0, quantity - $1), updated_at = NOW()
@@ -595,9 +602,10 @@ export async function executeAllocation(input: ExecuteAllocationInput): Promise<
       )
       await client.query(
         `INSERT INTO stock_movements (warehouse_id, product_id, change_type, quantity_delta, reference_type, reference_id, created_by)
-         VALUES ($1, $2, 'transfer_out', $3, 'container', $4, $5)`,
-        [LAGOS_WAREHOUSE_ID, item.product_id, -item.quantity, input.container_id, user.id]
+         VALUES ($1, $2, $3, $4, 'container', $5, $6)`,
+        [LAGOS_WAREHOUSE_ID, item.product_id, kanoIsPartner ? 'shipment_dispatch' : 'transfer_out', -item.quantity, input.container_id, user.id]
       )
+      if (kanoIsPartner) continue
       await client.query(
         `INSERT INTO warehouse_stock (warehouse_id, product_id, quantity, updated_at)
          VALUES ($1, $2, $3, NOW())

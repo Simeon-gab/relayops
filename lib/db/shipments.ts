@@ -135,8 +135,9 @@ type RawDetail = {
   shipment_items: Array<{
     product_id: string
     quantity: number
+    color: string | null
     unit_price_naira: number | null
-    products: { sku_code: string; display_name: string; color: string | null } | null
+    products: { sku_code: string; display_name: string; color: string | null; unit_label: string } | null
   }>
 }
 
@@ -162,7 +163,7 @@ export async function getShipment(shipmentId: string): Promise<ShipmentDetail | 
         origin_warehouse:warehouses!origin_warehouse_id(code, name),
         destination_warehouse:warehouses!destination_warehouse_id(code, name),
         destination_dealer:dealers!destination_dealer_id(id, business_name, contact_name, phone, city, state, preferred_language),
-        shipment_items(product_id, quantity, unit_price_naira, products(sku_code, display_name, color))
+        shipment_items(product_id, quantity, color, unit_price_naira, products(sku_code, display_name, color, unit_label))
       `)
       .eq('id', shipmentId)
       .is('deleted_at', null)
@@ -183,7 +184,9 @@ export async function getShipment(shipmentId: string): Promise<ShipmentDetail | 
     product_id: i.product_id,
     sku_code: i.products?.sku_code ?? '—',
     display_name: i.products?.display_name ?? '—',
-    color: i.products?.color ?? null,
+    // A line's own colour ("5 red") wins over the product's default.
+    color: i.color ?? i.products?.color ?? null,
+    unit_label: i.products?.unit_label ?? 'unit',
     quantity: i.quantity,
     unit_price_naira: i.unit_price_naira != null ? Number(i.unit_price_naira) : null,
   }))
