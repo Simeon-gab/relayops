@@ -38,7 +38,7 @@ export async function getDealers(): Promise<DealerSummary[]> {
   const [dealersResult, shipmentsResult] = await Promise.all([
     db
       .from('dealers')
-      .select('id, business_name, contact_name, phone, city, state, preferred_language, warehouses(code)')
+      .select('id, business_name, contact_name, phone, city, state, preferred_language, warehouses!dealers_served_by_warehouse_id_fkey(code)')
       .eq('active', true)
       .is('deleted_at', null)
       .order('business_name'),
@@ -114,7 +114,7 @@ export async function getDealer(dealerId: string): Promise<DealerDetail | null> 
   const [dealerResult, shipmentsResult, ordersResult] = await Promise.all([
     db
       .from('dealers')
-      .select('id, business_name, contact_name, phone, email, city, state, preferred_language, credit_limit_naira, active, notes, warehouses(code, name)')
+      .select('id, business_name, contact_name, phone, email, city, state, preferred_language, credit_limit_naira, active, notes, warehouses!dealers_served_by_warehouse_id_fkey(code, name)')
       .eq('id', dealerId)
       .eq('active', true)
       .is('deleted_at', null)
