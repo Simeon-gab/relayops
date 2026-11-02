@@ -189,7 +189,7 @@ export async function uploadProductImage(
   if (!admin) return { success: false, error: 'Not authenticated or not an admin.' }
 
   if (!file.type.startsWith('image/')) return { success: false, error: 'File must be an image.' }
-  if (file.size > 5 * 1024 * 1024) return { success: false, error: 'Image must be under 5 MB.' }
+  if (file.size > 4 * 1024 * 1024) return { success: false, error: 'Image must be under 4 MB.' }
 
   const { data: current } = await admin.db
     .from('products')

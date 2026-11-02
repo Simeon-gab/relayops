@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { createProduct, updateProduct, deactivateProduct, uploadProductImage, removeProductImage } from '@/app/actions/products'
 import { FileUpload } from '@/components/admin/file-upload'
+import { MAX_IMAGE_UPLOAD_BYTES, shrinkImage } from '@/lib/shrink-image'
 import type { ProductDetail } from '@/types/products'
 
 type Mode = 'create' | 'edit'
@@ -99,6 +100,20 @@ export function ProductForm({ product, mode }: Props) {
     }
   }
 
+  /** Uploads the image and returns an error message, or null if it worked. */
+  async function saveImage(productId: string, file: File): Promise<string | null> {
+    const prepared = await shrinkImage(file)
+    if (prepared.size > MAX_IMAGE_UPLOAD_BYTES) {
+      return 'it is too large. Please use a JPG, PNG or WEBP under 4 MB.'
+    }
+    try {
+      const result = await uploadProductImage(productId, prepared)
+      return result.success ? null : result.error
+    } catch {
+      return 'the upload failed. Please try again.'
+    }
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setServerError('')
@@ -113,7 +128,14 @@ export function ProductForm({ product, mode }: Props) {
         const result = await createProduct(input)
         if (!result.success) { setServerError(result.error); return }
         if (imageFile && result.productId) {
-          await uploadProductImage(result.productId, imageFile)
+          const imageError = await saveImage(result.productId, imageFile)
+          if (imageError) {
+            // The product exists now, so send them to edit it. Resubmitting
+            // this form would fail with a duplicate SKU error.
+            toast.error(`Product created, but the image was not saved: ${imageError}`)
+            router.push(`/products/${result.productId}/edit`)
+            return
+          }
         }
         toast.success('Product created')
         router.push(`/products/${result.productId}`)
@@ -121,8 +143,11 @@ export function ProductForm({ product, mode }: Props) {
         const result = await updateProduct(product!.id, input)
         if (!result.success) { setServerError(result.error); return }
         if (imageFile) {
-          const imgResult = await uploadProductImage(product!.id, imageFile)
-          if (imgResult.success) setCurrentImagePath(imgResult.imagePath)
+          const imageError = await saveImage(product!.id, imageFile)
+          if (imageError) {
+            setServerError(`Changes saved, but the image was not: ${imageError}`)
+            return
+          }
         }
         toast.success('Product updated')
         router.push(`/products/${product!.id}`)
