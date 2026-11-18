@@ -40,6 +40,8 @@ export interface LoadingLoad {
   destination_key: string | null
   /** What the message called the destination, e.g. "Kara/mina". */
   destination_text: string
+  /** Moved truck-to-truck — never entered the warehouse, so no stock is touched. */
+  transload: boolean
   lines: LoadingLine[]
 }
 

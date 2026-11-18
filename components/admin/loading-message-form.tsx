@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -37,13 +38,18 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
   const warehouses = options.destinations.filter((d) => d.kind === 'warehouse')
   const dealers = options.destinations.filter((d) => d.kind === 'dealer')
 
-  // What the whole message takes out of Lagos, product by product.
-  const totals = useMemo(() => {
-    const m = new Map<string, number>()
-    for (const load of draft?.loads ?? []) {
-      for (const l of load.lines) if (l.product_id) m.set(l.product_id, (m.get(l.product_id) ?? 0) + (l.quantity || 0))
+  // What the whole message takes out of Lagos, product by product — and,
+  // separately, what went truck-to-truck without touching Lagos stock.
+  const { totals, transloaded } = useMemo(() => {
+    const sum = (wantTransload: boolean) => {
+      const m = new Map<string, number>()
+      for (const load of draft?.loads ?? []) {
+        if (load.transload !== wantTransload) continue
+        for (const l of load.lines) if (l.product_id) m.set(l.product_id, (m.get(l.product_id) ?? 0) + (l.quantity || 0))
+      }
+      return [...m.entries()].map(([id, qty]) => ({ product: products.get(id)!, qty }))
     }
-    return [...m.entries()].map(([id, qty]) => ({ product: products.get(id)!, qty }))
+    return { totals: sum(false), transloaded: sum(true) }
   }, [draft, products])
 
   const shortages = totals.filter((t) => t.qty > t.product.lagos_stock)
@@ -83,6 +89,7 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
         parsed_by: draft.parsed_by,
         loads: draft.loads.map((l) => ({
           destination_key: l.destination_key!,
+          transload: l.transload,
           lines: l.lines.map((x) => ({ product_id: x.product_id!, quantity: x.quantity, color: x.color })),
         })),
       })
@@ -191,7 +198,22 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
                   </Button>
                 )}
               </div>
-              {dest?.partner && (
+              <label className="flex cursor-pointer items-start gap-3 border-b px-4 py-3">
+                <Switch
+                  checked={load.transload}
+                  onCheckedChange={(v) => updateLoad(i, { transload: v })}
+                  className="mt-0.5"
+                />
+                <span className="text-sm">
+                  <span className="font-medium text-slate-700">Transloaded truck-to-truck</span>
+                  <span className="block text-xs text-slate-500">
+                    {load.transload
+                      ? 'Did not enter the warehouse — recorded as a load, Lagos stock is not touched.'
+                      : 'Turn on if this went straight from one truck to another without entering the warehouse.'}
+                  </span>
+                </span>
+              </label>
+              {dest?.partner && !load.transload && (
                 <p className="border-b bg-slate-50 px-4 py-2 text-xs text-slate-500">
                   Partner warehouse — this leaves our stock and is recorded as delivered to the owner.
                 </p>
@@ -268,7 +290,7 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
         <Button
           variant="outline"
           onClick={() =>
-            setDraft({ ...draft, loads: [...draft.loads, { destination_key: null, destination_text: '', lines: [emptyLine()] }] })
+            setDraft({ ...draft, loads: [...draft.loads, { destination_key: null, destination_text: '', transload: false, lines: [emptyLine()] }] })
           }
         >
           <Plus className="mr-1 h-4 w-4" /> Add another destination
@@ -286,12 +308,17 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
             onChange={(e) => setDraft({ ...draft, load_date: e.target.value })}
             className="mt-1"
           />
+          <p className="mt-1 text-xs text-slate-400">
+            Everything is recorded on this date, even if you are entering it days later.
+          </p>
 
           <p className="mb-2 mt-4 text-xs font-medium uppercase tracking-wide text-slate-400">
             Leaving {options.origin_warehouse_name}
           </p>
           {totals.length === 0 ? (
-            <p className="text-sm text-slate-400">No items yet.</p>
+            <p className="text-sm text-slate-400">
+              {transloaded.length ? 'Nothing — stock is not touched.' : 'No items yet.'}
+            </p>
           ) : (
             <ul className="space-y-1.5 text-sm">
               {totals.map(({ product, qty }) => {
@@ -308,9 +335,24 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
               })}
             </ul>
           )}
+          {transloaded.length > 0 && (
+            <>
+              <p className="mb-2 mt-4 text-xs font-medium uppercase tracking-wide text-slate-400">
+                Transloaded — not from stock
+              </p>
+              <ul className="space-y-1.5 text-sm">
+                {transloaded.map(({ product, qty }) => (
+                  <li key={product.id} className="flex justify-between gap-3">
+                    <span>{product.display_name}</span>
+                    <span className="font-medium tabular-nums">{formatQty(qty, product.unit_label)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {shortages.length > 0 && (
             <p className="mt-3 text-xs text-red-600">
-              Lagos doesn&apos;t have enough of the items in red. Fix the quantities, or record the stock arriving first.
+              Lagos doesn&apos;t have enough of the items in red. Fix the quantities, record the stock arriving first, or mark the load as transloaded if it never entered the warehouse.
             </p>
           )}
         </div>

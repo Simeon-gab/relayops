@@ -58,6 +58,7 @@ export async function parseLoadingMessage(message: string): Promise<ParseLoading
       loads?: Array<{
         destination_text?: string
         destination_key?: string | null
+        transload?: boolean
         items?: Array<{ source_text?: string; sku_code?: string | null; quantity?: number; color?: string | null }>
       }>
       issues?: string[]
@@ -70,6 +71,7 @@ export async function parseLoadingMessage(message: string): Promise<ParseLoading
     const loads: LoadingLoad[] = (parsed.loads ?? []).map((l) => ({
       destination_key: (l.destination_key && byShort.get(l.destination_key)?.key) || null,
       destination_text: l.destination_text ?? '',
+      transload: l.transload === true,
       lines: (l.items ?? [])
         .filter((it) => Number.isInteger(it.quantity) && (it.quantity ?? 0) > 0)
         .map((it) => ({
@@ -103,6 +105,8 @@ export interface ConfirmLoadingInput {
   parsed_by: 'ai' | 'rules'
   loads: Array<{
     destination_key: string
+    /** Truck-to-truck: recorded as a load, but warehouse stock is not touched. */
+    transload?: boolean
     lines: Array<{ product_id: string; quantity: number; color: string | null }>
   }>
 }
@@ -115,6 +119,9 @@ export type ConfirmLoadingResult =
  * Record confirmed loads: one dispatched shipment per destination, Lagos stock
  * deducted, all in one transaction. Loads to a partner warehouse (Kano) leave
  * our stock and are not credited anywhere — that stock is Mr Kabiru's.
+ * A transload (truck-to-truck) never entered the warehouse, so it is recorded
+ * as a load with no stock check and no stock movement.
+ * Everything is dated to the loading date, so a backdated load sits in its day.
  */
 export async function confirmLoading(input: ConfirmLoadingInput): Promise<ConfirmLoadingResult> {
   const user = await getStaffUser()
@@ -146,6 +153,7 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
 
   const needed = new Map<string, number>()
   for (const load of input.loads) {
+    if (load.transload) continue
     for (const line of load.lines) needed.set(line.product_id, (needed.get(line.product_id) ?? 0) + line.quantity)
   }
 
@@ -185,8 +193,8 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
       const { rows: [s] } = await client.query<{ id: string }>(
         `INSERT INTO shipments
            (shipment_type, origin_warehouse_id, destination_warehouse_id, destination_dealer_id,
-            destination_city, destination_state, status, dispatched_at, amount_paid_naira, notes, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, 'dispatched', $7, 0, $8, $9)
+            destination_city, destination_state, status, dispatched_at, created_at, amount_paid_naira, notes, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, 'dispatched', $7, $7, 0, $8, $9)
          RETURNING id`,
         [
           isWarehouse ? 'transfer' : 'dealer',
@@ -196,7 +204,9 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
           dest.city || null,
           dest.state || null,
           dispatchedAt,
-          'Recorded from a WhatsApp loading message.',
+          load.transload
+            ? 'Transloaded truck-to-truck — did not enter the warehouse, so no stock was deducted. Recorded from a WhatsApp loading message.'
+            : 'Recorded from a WhatsApp loading message.',
           user.id,
         ]
       )
@@ -207,6 +217,7 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
           `INSERT INTO shipment_items (shipment_id, product_id, quantity, color) VALUES ($1, $2, $3, $4)`,
           [s.id, line.product_id, line.quantity, line.color?.trim() || null]
         )
+        if (load.transload) continue
         await client.query(
           `UPDATE warehouse_stock SET quantity = quantity - $1, updated_at = now()
            WHERE warehouse_id = $2 AND product_id = $3`,
@@ -216,9 +227,9 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
         const internal = isWarehouse && !dest.partner
         await client.query(
           `INSERT INTO stock_movements
-             (warehouse_id, product_id, change_type, quantity_delta, reference_type, reference_id, reason, created_by)
-           VALUES ($1, $2, $3, $4, 'shipment', $5, $6, $7)`,
-          [originId, line.product_id, internal ? 'transfer_out' : 'shipment_dispatch', -line.quantity, s.id, `Loaded to ${dest.name}`, user.id]
+             (warehouse_id, product_id, change_type, quantity_delta, reference_type, reference_id, reason, created_by, created_at)
+           VALUES ($1, $2, $3, $4, 'shipment', $5, $6, $7, $8)`,
+          [originId, line.product_id, internal ? 'transfer_out' : 'shipment_dispatch', -line.quantity, s.id, `Loaded to ${dest.name}`, user.id, dispatchedAt]
         )
         if (internal) {
           await client.query(
@@ -230,17 +241,17 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
           )
           await client.query(
             `INSERT INTO stock_movements
-               (warehouse_id, product_id, change_type, quantity_delta, reference_type, reference_id, reason, created_by)
-             VALUES ($1, $2, 'transfer_in', $3, 'shipment', $4, $5, $6)`,
-            [dest.id, line.product_id, line.quantity, s.id, `Received from ${options.origin_warehouse_name}`, user.id]
+               (warehouse_id, product_id, change_type, quantity_delta, reference_type, reference_id, reason, created_by, created_at)
+             VALUES ($1, $2, 'transfer_in', $3, 'shipment', $4, $5, $6, $7)`,
+            [dest.id, line.product_id, line.quantity, s.id, `Received from ${options.origin_warehouse_name}`, user.id, dispatchedAt]
           )
         }
       }
 
       await client.query(
         `INSERT INTO status_events (shipment_id, from_status, to_status, event_at, recorded_by, source, notes)
-         VALUES ($1, NULL, 'dispatched', $2, $3, 'admin', 'loaded_from_whatsapp')`,
-        [s.id, dispatchedAt, user.id]
+         VALUES ($1, NULL, 'dispatched', $2, $3, 'admin', $4)`,
+        [s.id, dispatchedAt, user.id, load.transload ? 'transloaded_from_whatsapp' : 'loaded_from_whatsapp']
       )
     }
 
@@ -255,6 +266,8 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
           parsed_by: input.parsed_by,
           ai_model: input.parsed_by === 'ai' ? AI_MODEL : null,
           shipment_ids: shipmentIds,
+          load_date: input.load_date,
+          transloaded: input.loads.some((l) => l.transload),
         }),
       ]
     )
@@ -266,10 +279,10 @@ export async function confirmLoading(input: ConfirmLoadingInput): Promise<Confir
     revalidatePath('/products', 'layout')
     revalidatePath('/dashboard')
 
-    const units = [...needed.values()].reduce((a, b) => a + b, 0)
+    const units = input.loads.reduce((a, l) => a + l.lines.reduce((b, x) => b + x.quantity, 0), 0)
     notifyAllAdmins({
       eventType: 'shipment_dispatched',
-      title: `${shipmentIds.length} load${shipmentIds.length === 1 ? '' : 's'} dispatched from Lagos`,
+      title: `${shipmentIds.length} load${shipmentIds.length === 1 ? '' : 's'} ${input.loads.every((l) => l.transload) ? 'transloaded' : 'dispatched from Lagos'}`,
       description: `${units} items · from a WhatsApp loading message`,
       entityType: 'shipment',
       entityId: shipmentIds[0],

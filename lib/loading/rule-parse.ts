@@ -69,6 +69,7 @@ export function ruleParseLoading(
 ): { loads: LoadingLoad[]; issues: string[] } {
   const text = normalise(message)
   const issues: string[] = []
+  const transload = /trans-?\s?load|truck to truck/.test(text)
 
   // Each "loading to X" starts a segment that runs to the next one.
   const heads = [...text.matchAll(LOAD_RE)]
@@ -96,7 +97,7 @@ export function ruleParseLoading(
     if (!destination) {
       issues.push(dest ? `Couldn't match destination "${dest}".` : 'No destination found — pick one.')
     }
-    return { destination_key: destination?.key ?? null, destination_text: dest, lines }
+    return { destination_key: destination?.key ?? null, destination_text: dest, transload, lines }
   })
 
   return { loads, issues }

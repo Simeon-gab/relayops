@@ -37,6 +37,10 @@ COLOURS
 DESTINATIONS
 - Use the destination key from the list you are given (e.g. "D3", "W2"). If none fits, set destination_key to null and add an issue naming what was written.
 
+TRANSLOADING
+- "transloading" / "transload" / "truck to truck" / "did not enter the warehouse" means the goods went straight from the arriving truck onto another truck. Set "transload": true on that load. Otherwise false.
+- Do not raise an issue just because a load is a transload.
+
 DATE
 - If the message says "today", "yesterday" or gives a date, resolve it against the date you are told is today and return YYYY-MM-DD. Otherwise null.
 
@@ -48,6 +52,7 @@ Respond ONLY with a JSON object — no markdown, no commentary:
     {
       "destination_text": "exactly what the message says, e.g. Kara/mina",
       "destination_key": "D3 or null",
+      "transload": false,
       "items": [
         { "source_text": "exact words, e.g. 80 cristal", "sku_code": "HK-CRYSTAL or null", "quantity": 80, "color": null }
       ]
