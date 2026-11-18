@@ -4,6 +4,9 @@ import { emitAlert } from '@/lib/agents/emit'
 import { logAgentRun, supersedeStaleAlerts } from '@/lib/db/ai-proposals'
 import { WATCHDOG } from '@/lib/policy'
 import { formatNaira } from '@/lib/utils/format'
+import { Client } from 'pg'
+import { revalidatePath } from 'next/cache'
+import { autoFulfillFromShipment } from '@/lib/shipments/auto-fulfill'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,6 +82,69 @@ async function sweepLowStock(db: ReturnType<typeof createAdminClient>): Promise<
     raised.push(product.id)
   }
   return raised
+}
+
+/**
+ * Close shipments nobody has confirmed. Until dealers use the portal there is
+ * no one to press "delivered", so a load that has been out long enough is
+ * taken as arrived. It is labelled as an assumption — in the history, the
+ * notes and the audit log — and staff can move it back to in transit if it
+ * turns out to be wrong. The delivery date is left empty: we do not know it.
+ */
+async function sweepAssumeDelivered(): Promise<number> {
+  const days = WATCHDOG.ASSUME_DELIVERED_DAYS
+  if (!days) return 0
+
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString()
+  const note = `Assumed delivered after ${days} days — not confirmed by the dealer.`
+
+  const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  await client.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const { rows } = await client.query<{ id: string; status: string; created_by: string }>(
+      `SELECT id, status, created_by FROM shipments
+       WHERE status IN ('dispatched', 'in_transit') AND dispatched_at < $1 AND deleted_at IS NULL
+       FOR UPDATE`,
+      [cutoff]
+    )
+
+    for (const s of rows) {
+      await client.query(
+        `UPDATE shipments
+         SET status = 'delivered', updated_at = now(), notes = concat_ws(' ', notes, $2::text)
+         WHERE id = $1`,
+        [s.id, note]
+      )
+      await client.query(
+        `INSERT INTO status_events (shipment_id, from_status, to_status, event_at, recorded_by, source, notes)
+         VALUES ($1, $2, 'delivered', now(), $3, 'ai_inferred', $4)`,
+        [s.id, s.status, s.created_by, note]
+      )
+      await client.query(
+        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, changes)
+         VALUES ($1, 'shipment_assumed_delivered', 'shipment', $2, $3)`,
+        [s.created_by, s.id, JSON.stringify({ from: s.status, to: 'delivered', by: 'watchdog', after_days: days })]
+      )
+      await autoFulfillFromShipment(client, s.id, s.created_by)
+    }
+
+    await client.query('COMMIT')
+
+    if (rows.length) {
+      revalidatePath('/shipments', 'layout')
+      revalidatePath('/dashboard')
+      revalidatePath('/dealer-orders', 'layout')
+    }
+    return rows.length
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    await client.end()
+  }
 }
 
 async function sweepOverdue(db: ReturnType<typeof createAdminClient>): Promise<string[]> {
@@ -172,10 +238,14 @@ export async function GET() {
   const db = createAdminClient()
   const raised: Raised = { stock: 0, overdue: 0, credit: 0 }
   const cleared: Raised = { stock: 0, overdue: 0, credit: 0 }
+  let assumedDelivered = 0
 
   try {
     // Sequential on purpose: three small sweeps against one small database,
     // and a failure in one should not hide the others' results.
+    // First, so a load closed here is not also raised as overdue below.
+    assumedDelivered = await sweepAssumeDelivered()
+
     const stock = await sweepLowStock(db)
     const overdue = await sweepOverdue(db)
     const credit = await sweepCredit(db)
@@ -198,7 +268,7 @@ export async function GET() {
       duration_ms: Date.now() - startedAt,
     })
 
-    return Response.json({ ok: true, raised, cleared })
+    return Response.json({ ok: true, raised, cleared, assumedDelivered })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error.'
     console.error('[watchdog] failed:', message)

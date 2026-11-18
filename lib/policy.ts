@@ -87,6 +87,12 @@ export const WATCHDOG = {
   LOW_STOCK_QTY: 5,
   /** A dispatched shipment unconfirmed for this long raises an overdue_alert. */
   OVERDUE_SHIPMENT_DAYS: 7,
+  /**
+   * A shipment still on the road after this many days is closed as "assumed
+   * delivered". Dealers are not on the portal yet, so nobody confirms arrival.
+   * Set to 0 to switch this off once they are.
+   */
+  ASSUME_DELIVERED_DAYS: 10,
   /** Container arriving within this many days is worth flagging to the partner. */
   ARRIVAL_HORIZON_DAYS: 14,
 } as const
