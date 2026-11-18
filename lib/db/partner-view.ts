@@ -178,12 +178,18 @@ async function fetchDestinations(
 async function fetchSkuFlow(
   db: Awaited<ReturnType<typeof createClient>>
 ): Promise<SkuFlowRow[]> {
-  const [stockRes, movesRes] = await Promise.all([
+  const [stockRes, movesRes, transloadRes] = await Promise.all([
     db.from('warehouse_stock').select('quantity, warehouses(code), products(sku_code, display_name, category)'),
     db
       .from('stock_movements')
       .select('quantity_delta, products(sku_code)')
       .eq('change_type', 'shipment_dispatch'),
+    // Transloads go truck-to-truck and never touch warehouse stock, so they
+    // leave no stock movement — count them from the shipments themselves.
+    db
+      .from('status_events')
+      .select('shipments!inner(status, deleted_at, shipment_items(quantity, products(sku_code, display_name, category)))')
+      .eq('notes', 'transloaded_from_whatsapp'),
   ])
 
   if (stockRes.error) throw stockRes.error
@@ -219,6 +225,37 @@ async function fetchSkuFlow(
     if (!sku) continue
     const row = bySku.get(sku)
     if (row) row.dispatched += Math.abs(m.quantity_delta ?? 0)
+  }
+
+  type TransloadRow = {
+    shipments: {
+      status: string
+      deleted_at: string | null
+      shipment_items: Array<{
+        quantity: number
+        products: { sku_code: string; display_name: string; category: string } | null
+      }>
+    } | null
+  }
+
+  for (const t of (transloadRes.data ?? []) as unknown as TransloadRow[]) {
+    const s = t.shipments
+    if (!s || s.deleted_at || s.status === 'cancelled') continue
+    for (const item of s.shipment_items ?? []) {
+      const sku = item.products?.sku_code
+      if (!sku) continue
+      // A transloaded product may never have been held in a warehouse at all.
+      const row = bySku.get(sku) ?? {
+        sku_code: sku,
+        display_name: item.products?.display_name ?? sku,
+        in_lagos: 0,
+        in_kano: 0,
+        category: item.products?.category ?? 'motorcycle',
+        dispatched: 0,
+      }
+      row.dispatched += item.quantity ?? 0
+      bySku.set(sku, row)
+    }
   }
 
   return [...bySku.values()].sort((a, b) => b.dispatched - a.dispatched)
