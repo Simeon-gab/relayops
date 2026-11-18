@@ -49,9 +49,9 @@ export default async function AdminLayout({
   const navRole: StaffRole = mdFullView ? 'manager' : role
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background print:block print:h-auto print:overflow-visible print:bg-white">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex print:hidden">
         <div className="border-b border-border px-5 py-4">
           <span className="text-base font-bold tracking-tight text-brand-deep">RelayOps</span>
         </div>
@@ -66,8 +66,8 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main column: topbar + scrollable content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden print:block print:overflow-visible">
+        <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4 print:hidden">
           <MobileNav role={navRole} />
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
             {role === 'md' && (
@@ -85,7 +85,7 @@ export default async function AdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-background">
+        <main className="flex-1 overflow-auto bg-background print:overflow-visible print:bg-white">
           {children}
         </main>
       </div>

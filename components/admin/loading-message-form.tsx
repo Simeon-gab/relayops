@@ -95,7 +95,7 @@ export function LoadingMessageForm({ options }: { options: LoadingOptions }) {
       })
       if (!res.success) { setError(res.error); return }
       toast.success(`${res.shipmentIds.length} load${res.shipmentIds.length === 1 ? '' : 's'} dispatched`)
-      router.push('/shipments')
+      router.push(`/shipments/statement?ids=${res.shipmentIds.join(',')}`)
     })
   }
 

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Printer } from 'lucide-react'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { ShipmentStatusActions } from '@/components/admin/shipment-status-actions'
 import { DraftMessageButton } from '@/components/admin/draft-message-button'
@@ -99,6 +99,13 @@ export default async function ShipmentDetailPage({ params }: Props) {
               }}
             />
           )}
+          <Link
+            href={`/shipments/statement?ids=${shipment.id}`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-white px-3 text-sm font-medium text-heading hover:bg-slate-50"
+          >
+            <Printer className="h-4 w-4" />
+            Statement
+          </Link>
           <ShipmentStatusActions shipment={{ id: shipment.id, status: shipment.status }} />
         </div>
       </div>
